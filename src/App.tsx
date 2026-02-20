@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 type Role = "student" | "faculty" | "admin";
 type Screen = "login" | "library" | "case" | "faculty_case" | "admin";
