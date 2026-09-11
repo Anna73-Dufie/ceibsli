@@ -1,2493 +1,1383 @@
-// src/App.tsx
-import React, { useEffect, useMemo, useState } from "react";
+// Alethia Clothing — Full E-Commerce App
+import React, { useState, useEffect, useMemo } from "react";
+import "./styles.css";
 
-type Role = "student" | "faculty" | "admin";
-type Screen = "login" | "library" | "case" | "faculty_case" | "admin";
-type AdminTab = "cases" | "upload" | "analytics";
-type CaseTab = "case" | "teaching";
+// ─── Brand Tokens ─────────────────────────────────────────────────────────────
+const B = {
+  cream:       "#FDF8F3",
+  ivory:       "#F5EDE2",
+  rose:        "#C4896A",
+  rosePale:    "#FAEEE8",
+  roseDeep:    "#9A5E44",
+  gold:        "#C9A87C",
+  goldLight:   "#EAD8BC",
+  charcoal:    "#2A2420",
+  ink:         "#1A1612",
+  muted:       "#8A7E78",
+  mutedLight:  "#B8AEA8",
+  border:      "#EAE0D8",
+  borderLight: "#F5F0EC",
+  white:       "#FFFFFF",
+  success:     "#5A8A6A",
+};
+const SERIF = '"Playfair Display", Georgia, serif';
+const SANS  = '"Inter", "Helvetica Neue", sans-serif';
 
-type Difficulty = "Foundational" | "Intermediate" | "Advanced" | "Executive";
-type Programme = "WELA" | "GEMBA" | "AMP" | "CSP";
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Size = "XS" | "S" | "M" | "L" | "XL" | "XXL";
+type Page = "home" | "shop" | "product" | "cart" | "checkout" | "confirmation" | "about";
 
-type Case = {
+interface Product {
   id: number;
-  code: string;
-  title: string;
-  sector: string;
-  country: string;
-  theme: string[];
-  programme: Programme;
-  difficulty: Difficulty;
-  duration: number;
-  abstract: string;
-  objectives: string[];
-  questions: string[];
-  year: number;
-  protagonist: string;
-  disguised: boolean;
-  downloadAllowed: boolean;
-  teachingNote: string;
-};
+  name: string;
+  price: number;
+  originalPrice?: number;
+  description: string;
+  details: string[];
+  category: string[];
+  colors: { name: string; hex: string }[];
+  sizes: Size[];
+  images: string[];
+  tag?: "New" | "Bestseller" | "Limited" | "Sale";
+  featured?: boolean;
+}
 
-const THEME = {
-  // CEIBS Africa Red theme (primary)
-  red: "#C8102E",
-  redDark: "#8A0F1F",
-  redLight: "#E23B4A",
+interface CartItem {
+  product: Product;
+  quantity: number;
+  size: Size;
+  color: string;
+}
 
-  // Accent (premium pairing with red)
-  gold: "#C9A84C",
-  goldLight: "#F0D080",
-
-  // Support
-  teal: "#0E6655",
-  tealLight: "#1A8870",
-
-  // Neutrals
-  bg: "#F7F8FC",
-  white: "#FFFFFF",
-  text: "#1A1A2E",
-  muted: "#6B7280",
-  border: "#E5E9F2",
-
-  // Used for shadows/overlays
-  ink: "rgba(0,0,0,0.65)",
-};
-
-const programmeColor: Record<Programme, string> = {
-  WELA: THEME.teal,
-  GEMBA: THEME.red,
-  AMP: "#6D28D9",
-  CSP: THEME.redDark,
-};
-
-const difficultyColor: Record<Difficulty, string> = {
-  Foundational: "#16A34A",
-  Intermediate: "#2563EB",
-  Advanced: "#7C3AED",
-  Executive: THEME.red,
-};
-
-const chip = (
-  label: string,
-  color: string,
-  bg?: string
-): React.CSSProperties => ({
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "3px 10px",
-  borderRadius: 999,
-  fontSize: 11,
-  fontWeight: 800,
-  letterSpacing: "0.04em",
-  background: bg ?? `${color}18`,
-  color,
-  border: `1px solid ${color}30`,
-  marginRight: 4,
-  marginBottom: 4,
-});
-
-const primaryButton = (
-  variant: "solid" | "ghost" = "solid"
-): React.CSSProperties =>
-  variant === "solid"
-    ? {
-        padding: "11px 14px",
-        background: `linear-gradient(135deg, ${THEME.red} 0%, ${THEME.redDark} 100%)`,
-        color: THEME.white,
-        border: "none",
-        borderRadius: 10,
-        fontSize: 13,
-        fontWeight: 800,
-        cursor: "pointer",
-        letterSpacing: "0.02em",
-        boxShadow: `0 8px 22px ${THEME.red}35`,
-      }
-    : {
-        padding: "10px 14px",
-        background: "transparent",
-        color: THEME.redDark,
-        border: `1px solid ${THEME.border}`,
-        borderRadius: 10,
-        fontSize: 13,
-        fontWeight: 800,
-        cursor: "pointer",
-      };
-
-const CASES: Case[] = [
+// ─── Product Catalogue ────────────────────────────────────────────────────────
+const PRODUCTS: Product[] = [
   {
     id: 1,
-    code: "CA-2026-GH-001",
-    title: "FinTech Disruption in Ghana",
-    sector: "Banking",
-    country: "Ghana",
-    theme: ["Strategy", "Digital Transformation"],
-    programme: "GEMBA",
-    difficulty: "Advanced",
-    duration: 90,
-    abstract:
-      "In 2024, Accra-based mobile lender PesaLink faced a strategic crisis as two international FinTech giants announced their entry into the Ghanaian market. CEO Abena Mensah must decide whether to compete head-on, seek a partnership, or pivot the business model entirely.",
-    objectives: [
-      "Analyse competitive dynamics in emerging FinTech markets",
-      "Apply Porter's Five Forces to platform business models",
-      "Evaluate strategic options under market disruption",
+    name: "Rosette Floral Midi",
+    price: 195,
+    description:
+      "A romantically draped floral midi dress in lightweight chiffon. Blooming florals in soft blush and sage dance across a cream foundation — perfect for garden parties and sun-drenched afternoons.",
+    details: [
+      "100% polyester chiffon",
+      "Midi length — knee to lower calf",
+      "V-neckline with flutter sleeves",
+      "Hidden side zip closure",
+      "Hand wash cold; lay flat to dry",
     ],
-    questions: [
-      "What strategic options are available to PesaLink?",
-      "What risks does Abena face in each scenario?",
-      "How would you advise the board to proceed?",
+    category: ["Casual", "Midi"],
+    colors: [{ name: "Blush", hex: "#E8B4A8" }, { name: "Sage", hex: "#A8B89A" }],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    images: [
+      "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80",
     ],
-    year: 2024,
-    protagonist: "Abena Mensah",
-    disguised: false,
-    downloadAllowed: true,
-    teachingNote:
-      "This case is best opened with a 10-minute individual analysis phase. Push students beyond Porter's Five Forces — the key insight is that PesaLink's moat is trust, not technology. Time breakdown: 0–15 min individual; 15–45 min small groups; 45–80 min plenary; 80–90 min faculty synthesis. Common mistake: students overweight the partnership option without analysing control and revenue share implications.",
+    tag: "New",
+    featured: true,
   },
   {
     id: 2,
-    code: "CA-2026-NG-002",
-    title: "Succession at Adeola & Sons",
-    sector: "Manufacturing",
-    country: "Nigeria",
-    theme: ["Leadership", "Family Business"],
-    programme: "AMP",
-    difficulty: "Intermediate",
-    duration: 75,
-    abstract:
-      "A third-generation Lagos conglomerate faces a governance crisis when the founding patriarch retires unexpectedly. Two competing heirs — one with an MBA from abroad, one who grew up in the business — must be evaluated by an independent board.",
-    objectives: [
-      "Examine governance structures in family-owned businesses",
-      "Evaluate succession planning frameworks",
-      "Analyse the role of institutional investors in governance reform",
+    name: "Midnight Velvet Gown",
+    price: 485,
+    description:
+      "Sculpted from rich crushed velvet, this floor-length evening gown commands every room. A deep cowl back and long sleeves create an air of powerful femininity and old-world glamour.",
+    details: [
+      "Crushed velvet blend",
+      "Floor-length silhouette",
+      "Cowl neckline and open back",
+      "Fully lined",
+      "Dry clean only",
     ],
-    questions: [
-      "How should the board evaluate the two candidates?",
-      "What governance reforms would you recommend?",
-      "How does the Nigerian business context shape this decision?",
+    category: ["Formal", "Maxi"],
+    colors: [{ name: "Midnight", hex: "#1A1428" }, { name: "Bordeaux", hex: "#6B2737" }],
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    images: [
+      "https://images.unsplash.com/photo-1517690623533-b4c8f3fe30e8?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
     ],
-    year: 2023,
-    protagonist: "Chukwuemeka Adeola",
-    disguised: false,
-    downloadAllowed: true,
-    teachingNote:
-      "Open with a role-play: assign half the class as the 'Abroad MBA' candidate's supporters and half as the 'insider' supporters. Let them argue before introducing the governance lens. Students miss that the real issue is board independence, not candidate selection.",
+    tag: "Bestseller",
+    featured: true,
   },
   {
     id: 3,
-    code: "CA-2026-KE-003",
-    title: "M-Kopa's Climate Pivot",
-    sector: "Energy",
-    country: "Kenya",
-    theme: ["Sustainability", "Strategy"],
-    programme: "WELA",
-    difficulty: "Executive",
-    duration: 120,
-    abstract:
-      "East Africa's leading solar home system company faces pressure from impact investors to accelerate its climate commitments while simultaneously navigating a currency crisis that threatens its loan book. The CEO must balance financial survival with ESG obligations.",
-    objectives: [
-      "Integrate ESG frameworks into core strategic decision-making",
-      "Analyse the tension between impact investing and commercial viability",
-      "Develop a stakeholder communication strategy under duress",
+    name: "Breezy Wrap Dress",
+    price: 145,
+    description:
+      "The quintessential everyday dress — an effortless wrap silhouette in soft crepe that flatters every shape. Adjustable tie waist, flowing skirt, and V-neckline make this your go-to.",
+    details: [
+      "Stretch crepe fabric",
+      "Adjustable wrap closure",
+      "Below-the-knee midi length",
+      "Machine washable, cold",
     ],
-    questions: [
-      "How does currency risk interact with the ESG mandate?",
-      "What should the CEO communicate to impact investors?",
-      "Is ESG a constraint or a source of competitive advantage here?",
+    category: ["Casual", "Midi"],
+    colors: [
+      { name: "Terracotta", hex: "#C4785A" },
+      { name: "Cream", hex: "#F5EDE2" },
+      { name: "Navy", hex: "#2B3A5C" },
     ],
-    year: 2024,
-    protagonist: "Sarah Wachira (disguised)",
-    disguised: true,
-    downloadAllowed: false,
-    teachingNote:
-      "This is a WELA signature case. Women leaders in energy: use this to open a broader discussion on barriers to women in the African energy sector. The protagonist's gender is deliberate — surface it in discussion. Do not show the Download button for this case — it is under copyright review.",
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    images: [
+      "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=80",
+    ],
+    featured: true,
   },
   {
     id: 4,
-    code: "CA-2026-RW-004",
-    title: "Kigali Innovation District: The Vision vs The Reality",
-    sector: "Real Estate",
-    country: "Rwanda",
-    theme: ["Innovation", "Corporate Governance"],
-    programme: "CSP",
-    difficulty: "Advanced",
-    duration: 90,
-    abstract:
-      "Rwanda's ambitious smart city initiative encounters its first major governance test when a Chinese development partner and a European impact fund disagree on land use commitments made at inception. The Minister of Infrastructure must mediate without losing either partner.",
-    objectives: [
-      "Examine public-private partnership governance in Africa",
-      "Analyse cross-cultural negotiation dynamics",
-      "Develop stakeholder alignment strategies in complex multi-party deals",
+    name: "Côte d'Azur Mini",
+    price: 128,
+    description:
+      "Inspired by the French Riviera, this off-shoulder mini radiates sun-soaked charm. Breezy cotton poplin, a smocked bodice, and a flouncy skirt make it as pretty as it is playful.",
+    details: [
+      "100% cotton poplin",
+      "Smocked off-shoulder bodice",
+      "Mini length",
+      "Machine washable",
     ],
-    questions: [
-      "Who has the stronger legal and moral position?",
-      "What negotiation strategy should the Minister adopt?",
-      "What governance structures could have prevented this impasse?",
+    category: ["Casual", "Mini"],
+    colors: [{ name: "Sky Blue", hex: "#87BDDC" }, { name: "White", hex: "#F9F7F4" }],
+    sizes: ["XS", "S", "M", "L"],
+    images: [
+      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?auto=format&fit=crop&w=700&q=80",
     ],
-    year: 2024,
-    protagonist: "Minister Jean-Paul Habimana",
-    disguised: false,
-    downloadAllowed: true,
-    teachingNote:
-      "CSP students are often public sector leaders themselves — use that. Ask: 'Have you been in this exact position?' Pair this with the OECD PPP governance checklist as a supplement reading.",
+    tag: "New",
   },
   {
     id: 5,
-    code: "CA-2026-ZA-005",
-    title: "Standard Bank's AI Dilemma",
-    sector: "Banking",
-    country: "South Africa",
-    theme: ["Digital Transformation", "Strategy"],
-    programme: "GEMBA",
-    difficulty: "Advanced",
-    duration: 90,
-    abstract:
-      "Africa's largest bank by assets must decide whether to build, buy, or partner for AI capabilities across its 20-country footprint. The CTO faces pressure from the board to move fast while the Chief Risk Officer warns of regulatory exposure across multiple jurisdictions.",
-    objectives: [
-      "Apply build-buy-partner frameworks to technology strategy",
-      "Analyse regulatory risk in multi-jurisdiction AI deployment",
-      "Evaluate organisational readiness for AI transformation",
+    name: "Riviera Linen Shirt Dress",
+    price: 168,
+    description:
+      "Clean lines meet relaxed luxury in this belted linen shirt dress. Oversized buttons, a relaxed collar, and a self-tie belt give it effortless polish from morning to evening.",
+    details: [
+      "100% European linen",
+      "Relaxed shirt-style collar",
+      "Self-tie belt included",
+      "Midi length",
+      "Machine wash gentle cycle",
     ],
-    questions: [
-      "What criteria should drive the build/buy/partner decision?",
-      "How should the board weigh speed against regulatory risk?",
-      "What does successful AI transformation look like at continental scale?",
+    category: ["Casual", "Midi"],
+    colors: [
+      { name: "Natural", hex: "#D4C4A8" },
+      { name: "Sand", hex: "#C2A88A" },
+      { name: "Slate", hex: "#8A9BAB" },
     ],
-    year: 2025,
-    protagonist: "Thandi Nkosi",
-    disguised: false,
-    downloadAllowed: true,
-    teachingNote:
-      "Fresh case — 2025 publication. Students will have opinions about AI from their own companies. Channel that energy. Start with a show-of-hands: 'Who is dealing with an AI build/buy decision right now?' Expected: 60–70% of GEMBA class. Then make it comparative.",
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    images: [
+      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80",
+    ],
   },
   {
     id: 6,
-    code: "CA-2026-ET-006",
-    title: "Ethiopian Airlines: The Pan-African Champion",
-    sector: "Telecoms",
-    country: "Ethiopia",
-    theme: ["Strategy", "Leadership"],
-    programme: "AMP",
-    difficulty: "Intermediate",
-    duration: 60,
-    abstract:
-      "How did a state-owned African airline become the continent's most profitable carrier while competitors collapsed? This case examines the strategic and operational decisions behind Ethiopian Airlines' rise and the leadership philosophy of CEO Tewolde GebreMariam.",
-    objectives: [
-      "Analyse the strategic drivers of competitive advantage in aviation",
-      "Examine the role of state ownership in African business success",
-      "Identify leadership practices that drove organisational transformation",
+    name: "Pearl Satin Slip",
+    price: 265,
+    description:
+      "Effortless elegance in liquid satin. Bias-cut to move beautifully with the body, with delicate adjustable straps and a subtle cowl neck that catches the light just so.",
+    details: [
+      "Satin-finish fabric",
+      "Bias cut for fluid drape",
+      "Adjustable spaghetti straps",
+      "Midi length",
+      "Dry clean recommended",
     ],
-    questions: [
-      "What explains Ethiopian Airlines' success where others failed?",
-      "How does state ownership enable or constrain strategy?",
-      "What leadership lessons are transferable to other sectors?",
+    category: ["Formal", "Midi"],
+    colors: [
+      { name: "Pearl", hex: "#EDE0D0" },
+      { name: "Blush", hex: "#DCB0A0" },
+      { name: "Champagne", hex: "#D4BC8C" },
     ],
-    year: 2023,
-    protagonist: "Tewolde GebreMariam",
-    disguised: false,
-    downloadAllowed: true,
-    teachingNote:
-      "Energising case — strong class discussion guaranteed. Watch for students who argue the state ownership is the only reason for success; push them to identify the specific operational decisions that matter. Good pairing: contrast with a failed state airline case (Air Zimbabwe) for maximum learning.",
+    sizes: ["XS", "S", "M", "L", "XL"],
+    images: [
+      "https://images.unsplash.com/photo-1566206091558-7f218b696731?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=700&q=80",
+    ],
+    tag: "Bestseller",
+    featured: true,
+  },
+  {
+    id: 7,
+    name: "Obsidian Bodycon",
+    price: 215,
+    description:
+      "Precision-engineered stretch fabric wraps the body in second-skin confidence. A subtle scoop back and clean minimal neckline keep this sleek mini in the sophisticated realm.",
+    details: [
+      "Stretch ponte fabric",
+      "Figure-hugging silhouette",
+      "Mini length with scoop back",
+      "Machine wash cold",
+    ],
+    category: ["Formal", "Mini"],
+    colors: [{ name: "Black", hex: "#1C1C1C" }, { name: "Espresso", hex: "#3C2818" }],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    images: [
+      "https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1514905552197-0610a4d8fd73?auto=format&fit=crop&w=700&q=80",
+    ],
+  },
+  {
+    id: 8,
+    name: "Bohème Maxi",
+    price: 228,
+    description:
+      "Free-spirited and beautifully fluid, this tiered boho maxi is made for long summer days. Delicate lace-trim at the hem and a prairie neckline make it utterly romantic.",
+    details: [
+      "Viscose blend",
+      "Tiered maxi skirt",
+      "Lace hem and sleeve detail",
+      "Smocked back for fit",
+      "Hand wash cold",
+    ],
+    category: ["Boho", "Maxi", "Casual"],
+    colors: [
+      { name: "Ivory", hex: "#F0E8D8" },
+      { name: "Dusty Rose", hex: "#D4A8A0" },
+      { name: "Rust", hex: "#B86448" },
+    ],
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    images: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=700&q=80",
+    ],
+    tag: "New",
+    featured: true,
+  },
+  {
+    id: 9,
+    name: "Garden Party Sundress",
+    price: 158,
+    description:
+      "Woven from soft floral cotton, this sundress is the picture of a perfect summer afternoon. Square neckline, built-in smocked bodice, and a full midi skirt bring feminine joy.",
+    details: [
+      "100% cotton",
+      "Built-in smocked bodice",
+      "Square neckline with thin straps",
+      "Midi length",
+      "Machine washable",
+    ],
+    category: ["Casual", "Midi"],
+    colors: [{ name: "Meadow", hex: "#A8C4A0" }, { name: "Lavender", hex: "#C4B8D8" }],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    images: [
+      "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&w=700&q=80",
+    ],
+  },
+  {
+    id: 10,
+    name: "La Petite Noire",
+    price: 245,
+    description:
+      "The definitive little black dress, reimagined. A clean A-line silhouette, structured bodice, and subtle high-low hem give this wardrobe staple a fresh, editorial edge.",
+    details: [
+      "Structured crepe fabric",
+      "A-line silhouette",
+      "High-low hem detail",
+      "Hidden back zip",
+      "Dry clean only",
+    ],
+    category: ["Formal", "Mini"],
+    colors: [{ name: "Black", hex: "#1C1C1C" }],
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    images: [
+      "https://images.unsplash.com/photo-1504703395950-b89145a5425b?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=700&q=80",
+    ],
+    tag: "Bestseller",
+  },
+  {
+    id: 11,
+    name: "Terracotta Wrap",
+    price: 178,
+    originalPrice: 215,
+    description:
+      "Rich terracotta tones in silky jersey — this midi hugs curves gracefully while remaining entirely comfortable. A statement dress that looks anything but effortless.",
+    details: [
+      "Stretch jersey blend",
+      "Adjustable wrap tie",
+      "Midi length, V-neckline",
+      "Machine wash cold",
+    ],
+    category: ["Casual", "Midi"],
+    colors: [{ name: "Terracotta", hex: "#C4785A" }, { name: "Sienna", hex: "#A85C3C" }],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    images: [
+      "https://images.unsplash.com/photo-1562137369-1a1a0bc73a0b?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&w=700&q=80",
+    ],
+    tag: "Sale",
+  },
+  {
+    id: 12,
+    name: "Champagne Chiffon Gown",
+    price: 395,
+    description:
+      "A sweep of champagne chiffon cascades into an elegant floor-length gown. Delicate plissé pleating, a one-shoulder neckline, and a subtle train make this the ultimate occasion dress.",
+    details: [
+      "Layered pleated chiffon",
+      "One-shoulder neckline",
+      "Floor-length with subtle train",
+      "Fully lined",
+      "Dry clean only",
+    ],
+    category: ["Formal", "Maxi"],
+    colors: [{ name: "Champagne", hex: "#D4BC8C" }, { name: "Rose Gold", hex: "#D4A89C" }],
+    sizes: ["XS", "S", "M", "L", "XL"],
+    images: [
+      "https://images.unsplash.com/photo-1623091411395-09e79fdbfcf3?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1585837575652-267ba8b7ae0b?auto=format&fit=crop&w=700&q=80",
+    ],
+    tag: "Limited",
+    featured: true,
   },
 ];
 
-const USERS: Record<string, { password: string; role: Role; name: string }> = {
-  "student@ceibsafrica.org": {
-    password: "student123",
-    role: "student",
-    name: "Kwame Asante",
-  },
-  "faculty@ceibsafrica.org": {
-    password: "faculty123",
-    role: "faculty",
-    name: "Prof. Adaeze Okonkwo",
-  },
-  "admin@ceibsafrica.org": {
-    password: "admin123",
-    role: "admin",
-    name: "Siyanda Dlamini",
-  },
+// ─── Cart Storage ─────────────────────────────────────────────────────────────
+const CART_KEY = "alethia_cart_v1";
+
+function loadCart(): CartItem[] {
+  try { return JSON.parse(localStorage.getItem(CART_KEY) ?? "[]"); } catch { return []; }
+}
+function saveCart(c: CartItem[]) {
+  try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch {}
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmt = (n: number) => `$${n.toFixed(2)}`;
+
+function useWindowWidth() {
+  const [w, setW] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
+  useEffect(() => {
+    const h = () => setW(window.innerWidth);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  return w;
+}
+
+const TAG_COLORS: Record<string, string> = {
+  New: B.rose, Bestseller: B.gold, Limited: "#7C6CAA", Sale: B.success,
 };
 
-const PROGRAMMES: Programme[] = ["WELA", "GEMBA", "AMP", "CSP"];
-const DIFFICULTIES: Difficulty[] = [
-  "Foundational",
-  "Intermediate",
-  "Advanced",
-  "Executive",
-];
-
+// ─── App Root ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("login");
-  const [role, setRole] = useState<Role | null>(null);
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [page, setPage]         = useState<Page>("home");
+  const [selected, setSel]      = useState<Product | null>(null);
+  const [cart, setCart]         = useState<CartItem[]>(loadCart);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [orderNum, setOrderNum] = useState("");
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<{
-    sector: string;
-    country: string;
-    programme: Programme | "";
-    difficulty: Difficulty | "";
-  }>({ sector: "", country: "", programme: "", difficulty: "" });
+  useEffect(() => { saveCart(cart); }, [cart]);
 
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const navigate = (p: Page, product?: Product) => {
+    if (product) setSel(product);
+    setPage(p);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
+  };
 
-  const [activeTab, setActiveTab] = useState<CaseTab>("case");
-  const [adminTab, setAdminTab] = useState<AdminTab>("cases");
-  const [hovered, setHovered] = useState<number | null>(null);
-
-  const [comments, setComments] = useState<Record<number, string[]>>({
-    1: [
-      "Great case — PesaLink's trust advantage is underappreciated. — Kwame A.",
-      "Agreed. The FinTech giants bring capital but not local credibility. — Fatima O.",
-    ],
-    2: [],
-    3: ["Brilliant to see an African woman in energy leading this. — Amara D."],
-    4: [],
-    5: [],
-    6: [
-      "Ethiopian Airlines is proof that African excellence is possible at global scale. — Tunde B.",
-    ],
-  });
-  const [newComment, setNewComment] = useState("");
-
-  const SECTORS = useMemo(() => [...new Set(CASES.map((c) => c.sector))], []);
-  const COUNTRIES = useMemo(
-    () => [...new Set(CASES.map((c) => c.country))],
-    []
-  );
-
-  const filteredCases = useMemo(() => {
-    return CASES.filter((c) => {
-      if (filters.sector && c.sector !== filters.sector) return false;
-      if (filters.country && c.country !== filters.country) return false;
-      if (filters.programme && c.programme !== filters.programme) return false;
-      if (filters.difficulty && c.difficulty !== filters.difficulty)
-        return false;
-
-      if (search) {
-        const s = search.toLowerCase();
-        const hit =
-          c.title.toLowerCase().includes(s) ||
-          c.abstract.toLowerCase().includes(s) ||
-          c.code.toLowerCase().includes(s);
-        if (!hit) return false;
-      }
-      return true;
-    });
-  }, [filters, search]);
-
-  const handleLogin = () => {
-    const user = USERS[loginEmail];
-    if (user && user.password === loginPassword) {
-      setRole(user.role);
-      setScreen(user.role === "admin" ? "admin" : "library");
-      setLoginError("");
-    } else {
-      setLoginError(
-        "Invalid credentials. Try: student@ceibsafrica.org / student123"
+  const addToCart = (item: CartItem) => {
+    setCart(prev => {
+      const idx = prev.findIndex(
+        i => i.product.id === item.product.id && i.size === item.size && i.color === item.color
       );
-    }
-  };
-
-  const onLogout = () => {
-    setScreen("login");
-    setRole(null);
-    setSelectedCase(null);
-    setSearch("");
-    setFilters({ sector: "", country: "", programme: "", difficulty: "" });
-    setLoginPassword("");
-    setLoginError("");
-  };
-
-  const openCase = (c: Case) => {
-    setSelectedCase(c);
-    setActiveTab("case");
-    setScreen(role === "faculty" || role === "admin" ? "faculty_case" : "case");
-  };
-
-  const postComment = () => {
-    if (!selectedCase) return;
-    const text = newComment.trim();
-    if (!text) return;
-    const name = USERS[loginEmail]?.name ?? "Anonymous";
-    setComments((prev) => ({
-      ...prev,
-      [selectedCase.id]: [
-        ...(prev[selectedCase.id] ?? []),
-        `${text} — ${name}`,
-      ],
-    }));
-    setNewComment("");
-  };
-
-  if (screen === "login") {
-    return (
-      <LoginScreen
-        email={loginEmail}
-        setEmail={setLoginEmail}
-        password={loginPassword}
-        setPassword={setLoginPassword}
-        onLogin={handleLogin}
-        error={loginError}
-      />
-    );
-  }
-
-  if (screen === "library") {
-    return (
-      <LibraryScreen
-        role={role!}
-        cases={filteredCases}
-        sectors={SECTORS}
-        countries={COUNTRIES}
-        search={search}
-        setSearch={setSearch}
-        filters={filters}
-        setFilters={setFilters}
-        onOpen={openCase}
-        onLogout={onLogout}
-        hovered={hovered}
-        setHovered={setHovered}
-      />
-    );
-  }
-
-  if (screen === "admin") {
-    return (
-      <AdminScreen
-        cases={CASES}
-        tab={adminTab}
-        setTab={setAdminTab}
-        onLogout={onLogout}
-        onOpen={openCase}
-      />
-    );
-  }
-
-  if ((screen === "case" || screen === "faculty_case") && selectedCase) {
-    return (
-      <CaseDetail
-        c={selectedCase}
-        onBack={() => setScreen("library")}
-        role={role!}
-        showTeaching={screen === "faculty_case"}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        comments={comments[selectedCase.id] ?? []}
-        newComment={newComment}
-        setNewComment={setNewComment}
-        onPost={postComment}
-      />
-    );
-  }
-
-  return null;
-}
-
-function LoginScreen(props: {
-  email: string;
-  setEmail: (v: string) => void;
-  password: string;
-  setPassword: (v: string) => void;
-  onLogin: () => void;
-  error: string;
-}) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setShow(true), 120);
-    return () => clearTimeout(t);
-  }, []);
-
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: `linear-gradient(135deg, ${THEME.redDark} 0%, ${THEME.red} 45%, #2B0A0F 100%)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "Georgia, serif",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: -120,
-          right: -120,
-          width: 420,
-          height: 420,
-          borderRadius: "50%",
-          background: `${THEME.gold}12`,
-          border: `1px solid ${THEME.gold}25`,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: -90,
-          left: -90,
-          width: 320,
-          height: 320,
-          borderRadius: "50%",
-          background: `${THEME.redLight}18`,
-          border: `1px solid ${THEME.redLight}25`,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: "30%",
-          left: "8%",
-          color: `${THEME.gold}22`,
-          fontSize: 86,
-          userSelect: "none",
-        }}
-      >
-        ❝
-      </div>
-
-      <div
-        style={{
-          opacity: show ? 1 : 0,
-          transform: show ? "translateY(0)" : "translateY(18px)",
-          transition: "all 0.6s ease",
-          width: 440,
-          zIndex: 10,
-        }}
-      >
-        <div style={{ textAlign: "center", marginBottom: 34 }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 12,
-              marginBottom: 10,
-            }}
-          >
-            <div
-              style={{
-                width: 46,
-                height: 46,
-                background: THEME.gold,
-                borderRadius: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 900,
-                color: THEME.redDark,
-                fontSize: 18,
-                fontFamily: "serif",
-              }}
-            >
-              CA
-            </div>
-            <div>
-              <div
-                style={{
-                  color: THEME.white,
-                  fontWeight: 800,
-                  fontSize: 16,
-                  letterSpacing: "0.05em",
-                }}
-              >
-                CEIBS AFRICA
-              </div>
-              <div
-                style={{
-                  color: THEME.gold,
-                  fontSize: 11,
-                  letterSpacing: "0.15em",
-                  fontFamily: "sans-serif",
-                }}
-              >
-                EXECUTIVE EDUCATION
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              color: THEME.white,
-              fontSize: 22,
-              fontWeight: 650,
-              marginTop: 8,
-            }}
-          >
-            Digital Case Library
-          </div>
-          <div
-            style={{
-              color: "rgba(255,255,255,0.75)",
-              fontSize: 13,
-              marginTop: 4,
-              fontFamily: "sans-serif",
-            }}
-          >
-            Secure Access Portal
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: "rgba(255,255,255,0.98)",
-            borderRadius: 18,
-            padding: "36px 40px",
-            boxShadow: `0 28px 70px ${THEME.ink}`,
-          }}
-        >
-          <Field label="INSTITUTIONAL EMAIL">
-            <input
-              value={props.email}
-              onChange={(e) => props.setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && props.onLogin()}
-              placeholder="yourname@ceibsafrica.org"
-              style={inputStyle()}
-            />
-          </Field>
-
-          <Field label="PASSWORD">
-            <input
-              value={props.password}
-              onChange={(e) => props.setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && props.onLogin()}
-              type="password"
-              placeholder="••••••••"
-              style={inputStyle()}
-            />
-          </Field>
-
-          <div style={{ textAlign: "right", marginBottom: 18 }}>
-            <span
-              style={{
-                fontSize: 12,
-                color: THEME.redDark,
-                cursor: "pointer",
-                fontFamily: "sans-serif",
-              }}
-            >
-              Forgot password?
-            </span>
-          </div>
-
-          {props.error && (
-            <div
-              style={{
-                background: "#FEE2E2",
-                border: "1px solid #FECACA",
-                borderRadius: 10,
-                padding: "10px 12px",
-                fontSize: 12,
-                color: THEME.redDark,
-                marginBottom: 16,
-                fontFamily: "sans-serif",
-              }}
-            >
-              {props.error}
-            </div>
-          )}
-
-          <button
-            onClick={props.onLogin}
-            style={{ ...primaryButton("solid"), width: "100%" }}
-          >
-            Log In Securely →
-          </button>
-
-          <div
-            style={{
-              marginTop: 18,
-              padding: "12px 12px",
-              background: "#F7F8FC",
-              borderRadius: 10,
-              borderLeft: `3px solid ${THEME.gold}`,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                color: THEME.muted,
-                fontFamily: "sans-serif",
-                lineHeight: 1.5,
-              }}
-            >
-              By logging in, you confirm you are an enrolled participant or
-              authorised faculty member of CEIBS Africa and agree not to
-              distribute case materials externally.
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 16,
-              padding: "10px 12px",
-              background: "#FFF7ED",
-              borderRadius: 10,
-              fontSize: 11,
-              color: THEME.redDark,
-              fontFamily: "sans-serif",
-              border: `1px solid ${THEME.gold}33`,
-            }}
-          >
-            <strong>Demo accounts:</strong>
-            <br />
-            student@ceibsafrica.org / student123
-            <br />
-            faculty@ceibsafrica.org / faculty123
-            <br />
-            admin@ceibsafrica.org / admin123
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LibraryScreen(props: {
-  role: Role;
-  cases: Case[];
-  sectors: string[];
-  countries: string[];
-  search: string;
-  setSearch: (v: string) => void;
-  filters: {
-    sector: string;
-    country: string;
-    programme: Programme | "";
-    difficulty: Difficulty | "";
-  };
-  setFilters: React.Dispatch<
-    React.SetStateAction<{
-      sector: string;
-      country: string;
-      programme: Programme | "";
-      difficulty: Difficulty | "";
-    }>
-  >;
-  onOpen: (c: Case) => void;
-  onLogout: () => void;
-  hovered: number | null;
-  setHovered: (v: number | null) => void;
-}) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setShow(true), 60);
-    return () => clearTimeout(t);
-  }, []);
-
-  const toggleFilter = (
-    key: "sector" | "country" | "programme" | "difficulty",
-    val: any
-  ) => {
-    props.setFilters((f) => ({ ...f, [key]: f[key] === val ? "" : val }));
-  };
-
-  const clearAll = () =>
-    props.setFilters({
-      sector: "",
-      country: "",
-      programme: "",
-      difficulty: "",
+      if (idx >= 0) {
+        const u = [...prev];
+        u[idx] = { ...u[idx], quantity: u[idx].quantity + item.quantity };
+        return u;
+      }
+      return [...prev, item];
     });
+    setCartOpen(true);
+  };
 
-  const hasFilters = Object.values(props.filters).some(Boolean);
+  const updateQty = (idx: number, delta: number) => {
+    setCart(prev => {
+      const u = [...prev];
+      const nq = u[idx].quantity + delta;
+      if (nq <= 0) u.splice(idx, 1);
+      else u[idx] = { ...u[idx], quantity: nq };
+      return u;
+    });
+  };
+
+  const removeFromCart = (idx: number) => setCart(prev => prev.filter((_, i) => i !== idx));
+
+  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  const placeOrder = () => {
+    const n = "ALT-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    setOrderNum(n);
+    setCart([]);
+    navigate("confirmation");
+  };
+
+  const shared = { navigate, addToCart, cart, cartCount, cartTotal, updateQty, removeFromCart };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: THEME.bg,
-        fontFamily: "sans-serif",
-      }}
-    >
-      <TopNav
-        leftTitle="CEIBS Africa"
-        leftSubtitle="CASE LIBRARY"
-        badge={props.role}
-        onLogout={props.onLogout}
-      />
+    <div style={{ minHeight: "100vh", background: B.cream, fontFamily: SANS }}>
+      <Header cartCount={cartCount} navigate={navigate} page={page} onCartOpen={() => setCartOpen(true)} />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
-        <div
-          style={{
-            opacity: show ? 1 : 0,
-            transform: show ? "none" : "translateY(10px)",
-            transition: "all 0.5s",
-            marginBottom: 28,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 12,
-              marginBottom: 8,
-            }}
-          >
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 28,
-                color: THEME.text,
-                fontFamily: "Georgia, serif",
-                fontWeight: 800,
-              }}
-            >
-              Case Library
-            </h1>
-            <span style={{ fontSize: 13, color: THEME.muted }}>
-              · {props.cases.length} case{props.cases.length !== 1 ? "s" : ""}{" "}
-              available
-            </span>
-          </div>
-          <p style={{ margin: 0, color: THEME.muted, fontSize: 14 }}>
-            Search and filter cases across all CEIBS Africa executive
-            programmes.
-          </p>
-        </div>
+      {cartOpen && (
+        <>
+          <div onClick={() => setCartOpen(false)} className="fade-in"
+            style={{ position: "fixed", inset: 0, background: "rgba(26,22,18,0.5)", zIndex: 299 }} />
+          <CartSidebar
+            cart={cart} cartTotal={cartTotal} onClose={() => setCartOpen(false)}
+            updateQty={updateQty} removeFromCart={removeFromCart}
+            navigate={(p) => { setCartOpen(false); navigate(p); }}
+          />
+        </>
+      )}
 
-        <div
-          style={{
-            opacity: show ? 1 : 0,
-            transition: "all 0.5s 0.1s",
-            marginBottom: 24,
-          }}
-        >
-          <div style={{ position: "relative", marginBottom: 14 }}>
-            <span
-              style={{
-                position: "absolute",
-                left: 16,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: THEME.muted,
-                fontSize: 16,
-              }}
-            >
-              🔍
-            </span>
-            <input
-              value={props.search}
-              onChange={(e) => props.setSearch(e.target.value)}
-              placeholder="Search by title, keyword, or case code…"
-              style={{
-                width: "100%",
-                padding: "14px 14px 14px 44px",
-                border: `1px solid ${THEME.border}`,
-                borderRadius: 12,
-                fontSize: 14,
-                outline: "none",
-                background: THEME.white,
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
+      {page === "home"         && <HomePage        {...shared} />}
+      {page === "shop"         && <ShopPage         {...shared} />}
+      {page === "product" && selected && <ProductDetailPage product={selected} {...shared} />}
+      {page === "cart"         && <CartPage         {...shared} placeOrder={placeOrder} />}
+      {page === "checkout"     && <CheckoutPage     {...shared} placeOrder={placeOrder} />}
+      {page === "confirmation" && <ConfirmationPage orderNum={orderNum} navigate={navigate} />}
+      {page === "about"        && <AboutPage        navigate={navigate} />}
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {PROGRAMMES.map((p) => (
-              <FilterChip
-                key={p}
-                label={p}
-                active={props.filters.programme === p}
-                onClick={() => toggleFilter("programme", p)}
-                color={programmeColor[p]}
-              />
-            ))}
-            <Divider />
-            {props.sectors.map((s) => (
-              <FilterChip
-                key={s}
-                label={s}
-                active={props.filters.sector === s}
-                onClick={() => toggleFilter("sector", s)}
-                color={THEME.redDark}
-              />
-            ))}
-            <Divider />
-            {props.countries.map((c) => (
-              <FilterChip
-                key={c}
-                label={c}
-                active={props.filters.country === c}
-                onClick={() => toggleFilter("country", c)}
-                color={THEME.teal}
-              />
-            ))}
-            <Divider />
-            {DIFFICULTIES.map((d) => (
-              <FilterChip
-                key={d}
-                label={d}
-                active={props.filters.difficulty === d}
-                onClick={() => toggleFilter("difficulty", d)}
-                color={difficultyColor[d]}
-              />
-            ))}
-            {hasFilters && (
-              <button
-                onClick={clearAll}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 999,
-                  border: "none",
-                  background: "#FEE2E2",
-                  color: THEME.redDark,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  fontWeight: 800,
-                }}
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-            gap: 18,
-          }}
-        >
-          {props.cases.map((c, i) => {
-            const isHover = props.hovered === c.id;
-            return (
-              <div
-                key={c.id}
-                onMouseEnter={() => props.setHovered(c.id)}
-                onMouseLeave={() => props.setHovered(null)}
-                style={{
-                  opacity: show ? 1 : 0,
-                  transform: show ? "none" : "translateY(16px)",
-                  transition: `all 0.5s ${0.05 * i}s`,
-                  background: THEME.white,
-                  borderRadius: 14,
-                  border: `1px solid ${isHover ? THEME.gold : THEME.border}`,
-                  overflow: "hidden",
-                  boxShadow: isHover
-                    ? "0 10px 34px rgba(0,0,0,0.12)"
-                    : "0 1px 4px rgba(0,0,0,0.06)",
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    height: 5,
-                    background: `linear-gradient(90deg, ${
-                      programmeColor[c.programme]
-                    }, ${THEME.gold})`,
-                  }}
-                />
-                <div style={{ padding: "18px 20px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 10,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 11,
-                        color: THEME.muted,
-                        fontFamily: "monospace",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {c.code}
-                    </span>
-                    <span
-                      style={{
-                        ...chip(c.programme, programmeColor[c.programme]),
-                        marginBottom: 0,
-                      }}
-                    >
-                      {c.programme}
-                    </span>
-                  </div>
-
-                  <h3
-                    style={{
-                      margin: "0 0 8px",
-                      fontSize: 16,
-                      color: THEME.text,
-                      fontFamily: "Georgia, serif",
-                      fontWeight: 800,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {c.title}
-                  </h3>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 6,
-                      marginBottom: 12,
-                    }}
-                  >
-                    <span style={chip(c.sector, THEME.redDark)}>
-                      🏭 {c.sector}
-                    </span>
-                    <span style={chip(c.country, THEME.teal)}>
-                      📍 {c.country}
-                    </span>
-                    <span
-                      style={chip(c.difficulty, difficultyColor[c.difficulty])}
-                    >
-                      ⭐ {c.difficulty}
-                    </span>
-                    <span style={chip(`${c.duration} min`, "#666")}>
-                      ⏱ {c.duration} min
-                    </span>
-                  </div>
-
-                  <p
-                    style={{
-                      margin: "0 0 14px",
-                      fontSize: 13,
-                      color: THEME.muted,
-                      lineHeight: 1.55,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {c.abstract}
-                  </p>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      marginBottom: 14,
-                    }}
-                  >
-                    {c.theme.map((t) => (
-                      <span
-                        key={t}
-                        style={{
-                          fontSize: 11,
-                          color: THEME.redDark,
-                          background: `${THEME.redDark}0E`,
-                          border: `1px solid ${THEME.redDark}20`,
-                          borderRadius: 6,
-                          padding: "2px 8px",
-                          marginRight: 4,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {t}
-                      </span>
-                    ))}
-                    {c.disguised && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: "#777",
-                          background: "#77777710",
-                          border: "1px solid #77777720",
-                          borderRadius: 6,
-                          padding: "2px 8px",
-                        }}
-                      >
-                        Disguised
-                      </span>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => props.onOpen(c)}
-                    style={{
-                      width: "100%",
-                      padding: "11px",
-                      background: isHover ? THEME.red : THEME.bg,
-                      color: isHover ? THEME.white : THEME.redDark,
-                      border: `1px solid ${THEME.red}35`,
-                      borderRadius: 10,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                      letterSpacing: "0.02em",
-                    }}
-                  >
-                    Open Case →
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {props.cases.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "80px 0",
-              color: THEME.muted,
-            }}
-          >
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-            <div style={{ fontSize: 16, fontWeight: 800 }}>
-              No cases match your current filters.
-            </div>
-            <div style={{ fontSize: 13 }}>
-              Try clearing some filters or changing your search.
-            </div>
-          </div>
-        )}
-      </div>
+      <Footer navigate={navigate} />
     </div>
   );
 }
 
-function CaseDetail(props: {
-  c: Case;
-  onBack: () => void;
-  role: Role;
-  showTeaching: boolean;
-  activeTab: CaseTab;
-  setActiveTab: (t: CaseTab) => void;
-  comments: string[];
-  newComment: string;
-  setNewComment: (v: string) => void;
-  onPost: () => void;
+// ─── Header ───────────────────────────────────────────────────────────────────
+function Header({ cartCount, navigate, page, onCartOpen }: {
+  cartCount: number; navigate: (p: Page) => void; page: Page; onCartOpen: () => void;
 }) {
-  const canSeeTeaching = props.showTeaching;
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isMobile = useWindowWidth() < 768;
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: THEME.bg,
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div
-        style={{
-          background: THEME.redDark,
-          padding: "0 28px",
-          display: "flex",
-          alignItems: "center",
-          height: 58,
-          boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
-        }}
-      >
-        <button
-          onClick={props.onBack}
-          style={{
-            ...primaryButton("ghost"),
-            background: "rgba(255,255,255,0.12)",
-            color: THEME.white,
-            border: "none",
-            padding: "7px 14px",
-            borderRadius: 10,
-            marginRight: 16,
-          }}
-        >
-          ← Back
-        </button>
-        <span
-          style={{
-            color: THEME.gold,
-            fontSize: 12,
-            fontFamily: "monospace",
-            fontWeight: 800,
-          }}
-        >
-          {props.c.code}
-        </span>
-        <span
-          style={{
-            color: "rgba(255,255,255,0.55)",
-            fontSize: 13,
-            margin: "0 8px",
-          }}
-        >
-          /
-        </span>
-        <span
-          style={{
-            color: THEME.white,
-            fontSize: 13,
-            fontWeight: 800,
-            fontFamily: "Georgia, serif",
-          }}
-        >
-          {props.c.title}
-        </span>
+  useEffect(() => {
+    const h = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", h);
+    return () => window.removeEventListener("scroll", h);
+  }, []);
 
-        {canSeeTeaching && (
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-            {(["case", "teaching"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => props.setActiveTab(tab)}
-                style={{
-                  padding: "7px 14px",
-                  borderRadius: 10,
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  background:
-                    props.activeTab === tab
-                      ? THEME.gold
-                      : "rgba(255,255,255,0.12)",
-                  color: props.activeTab === tab ? THEME.redDark : THEME.white,
-                  transition: "all 0.15s",
-                }}
-              >
-                {tab === "case" ? "📄 Case" : "🔒 Teaching Notes"}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div style={{ maxWidth: 880, margin: "0 auto", padding: "28px 24px" }}>
-        {props.activeTab === "case" && (
-          <>
-            <div
-              style={{
-                background: THEME.white,
-                borderRadius: 14,
-                padding: "30px 32px",
-                marginBottom: 18,
-                border: `1px solid ${THEME.border}`,
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 6,
-                  marginBottom: 12,
-                }}
-              >
-                <span
-                  style={chip(
-                    props.c.programme,
-                    programmeColor[props.c.programme]
-                  )}
-                >
-                  {props.c.programme}
-                </span>
-                <span style={chip(props.c.sector, THEME.redDark)}>
-                  🏭 {props.c.sector}
-                </span>
-                <span style={chip(props.c.country, THEME.teal)}>
-                  📍 {props.c.country}
-                </span>
-                <span
-                  style={chip(
-                    props.c.difficulty,
-                    difficultyColor[props.c.difficulty]
-                  )}
-                >
-                  ⭐ {props.c.difficulty}
-                </span>
-                <span style={chip(`${props.c.duration} min`, "#666")}>
-                  ⏱ {props.c.duration} min
-                </span>
-                {props.c.disguised && (
-                  <span style={chip("Anonymised", "#777")}>🔐 Anonymised</span>
-                )}
-              </div>
-
-              <h1
-                style={{
-                  margin: "0 0 14px",
-                  fontSize: 26,
-                  color: THEME.text,
-                  fontFamily: "Georgia, serif",
-                  fontWeight: 900,
-                  lineHeight: 1.25,
-                }}
-              >
-                {props.c.title}
-              </h1>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  color: "#374151",
-                  lineHeight: 1.75,
-                }}
-              >
-                {props.c.abstract}
-              </p>
-            </div>
-
-            <Section title="LEARNING OBJECTIVES">
-              {props.c.objectives.map((o, i) => (
-                <div
-                  key={i}
-                  style={{ display: "flex", gap: 12, marginBottom: 10 }}
-                >
-                  <span
-                    style={{ color: THEME.gold, fontWeight: 900, minWidth: 22 }}
-                  >
-                    {i + 1}.
-                  </span>
-                  <span
-                    style={{ fontSize: 14, color: THEME.text, lineHeight: 1.5 }}
-                  >
-                    {o}
-                  </span>
-                </div>
-              ))}
-            </Section>
-
-            <div
-              style={{
-                background: THEME.white,
-                borderRadius: 14,
-                border: `1px solid ${THEME.border}`,
-                marginBottom: 18,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  padding: "14px 18px",
-                  borderBottom: `1px solid ${THEME.border}`,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: THEME.redDark,
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  📄 CASE DOCUMENT
-                </span>
-                {props.c.downloadAllowed && (
-                  <button
-                    style={{
-                      padding: "7px 12px",
-                      background: THEME.redDark,
-                      color: THEME.white,
-                      border: "none",
-                      borderRadius: 10,
-                      fontSize: 12,
-                      cursor: "pointer",
-                      fontWeight: 900,
-                    }}
-                  >
-                    ⬇ Download PDF
-                  </button>
-                )}
-              </div>
-
-              <div
-                style={{ background: "#F3F4F6", padding: 22, minHeight: 380 }}
-              >
-                <div
-                  style={{
-                    background: THEME.white,
-                    maxWidth: 660,
-                    margin: "0 auto",
-                    padding: "38px 46px",
-                    boxShadow: "0 8px 28px rgba(0,0,0,0.12)",
-                    borderRadius: 4,
-                  }}
-                >
-                  <div
-                    style={{
-                      textAlign: "right",
-                      fontSize: 10,
-                      color: "#9CA3AF",
-                      marginBottom: 22,
-                      borderBottom: "1px solid #EEE",
-                      paddingBottom: 10,
-                    }}
-                  >
-                    {props.c.code} · For Academic Use Only · CEIBS Africa · Do
-                    Not Distribute
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: THEME.teal,
-                      fontWeight: 900,
-                      letterSpacing: "0.1em",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {props.c.programme} · {props.c.sector}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 20,
-                      fontFamily: "Georgia, serif",
-                      fontWeight: 900,
-                      color: THEME.redDark,
-                      marginBottom: 4,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {props.c.title}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: THEME.muted,
-                      marginBottom: 18,
-                    }}
-                  >
-                    CEIBS Africa Case Library · {props.c.year}
-                  </div>
-                  <div
-                    style={{
-                      height: 1,
-                      background: "#E5E7EB",
-                      marginBottom: 18,
-                    }}
-                  />
-                  <div
-                    style={{ fontSize: 12, lineHeight: 1.85, color: "#374151" }}
-                  >
-                    <strong>Abstract</strong>
-                    <br />
-                    {props.c.abstract}
-                    <br />
-                    <br />
-                    <em style={{ fontSize: 11, color: "#9CA3AF" }}>
-                      [Full case document continues. In the live portal, this
-                      area shows the complete embedded PDF. Students read the
-                      full case here with scroll and zoom controls.]
-                    </em>
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 22,
-                      padding: "10px 14px",
-                      background: "#FFFBEB",
-                      border: `1px solid ${THEME.gold}35`,
-                      borderRadius: 10,
-                      fontSize: 10,
-                      color: "#6B7280",
-                      textAlign: "center",
-                    }}
-                  >
-                    Watermarked: {new Date().toLocaleDateString()} ·{" "}
-                    {props.c.code}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <Section title="DISCUSSION QUESTIONS">
-              {props.c.questions.map((q, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    marginBottom: 10,
-                    padding: "10px 14px",
-                    background: THEME.bg,
-                    borderRadius: 12,
-                  }}
-                >
-                  <span
-                    style={{ color: THEME.gold, fontWeight: 900, fontSize: 14 }}
-                  >
-                    Q{i + 1}
-                  </span>
-                  <span style={{ fontSize: 14, color: THEME.text }}>{q}</span>
-                </div>
-              ))}
-
-              <div
-                style={{
-                  marginTop: 18,
-                  borderTop: `1px solid ${THEME.border}`,
-                  paddingTop: 16,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 900,
-                    color: THEME.muted,
-                    letterSpacing: "0.1em",
-                    marginBottom: 12,
-                  }}
-                >
-                  💬 CLASS DISCUSSION
-                </div>
-
-                {(props.comments ?? []).map((cm, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      padding: "10px 14px",
-                      background: "#FAFAFA",
-                      borderRadius: 12,
-                      marginBottom: 8,
-                      fontSize: 13,
-                      color: THEME.text,
-                      borderLeft: `3px solid ${THEME.gold}`,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {cm}
-                  </div>
-                ))}
-
-                {(props.comments ?? []).length === 0 && (
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: THEME.muted,
-                      marginBottom: 12,
-                    }}
-                  >
-                    No comments yet — be the first to post your insight.
-                  </div>
-                )}
-
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <input
-                    value={props.newComment}
-                    onChange={(e) => props.setNewComment(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && props.onPost()}
-                    placeholder="Share your pre-class analysis or reaction…"
-                    style={{
-                      flex: 1,
-                      padding: "10px 14px",
-                      border: `1px solid ${THEME.border}`,
-                      borderRadius: 12,
-                      fontSize: 13,
-                      outline: "none",
-                      background: THEME.white,
-                    }}
-                  />
-                  <button
-                    onClick={props.onPost}
-                    style={{ ...primaryButton("solid"), borderRadius: 12 }}
-                  >
-                    Post
-                  </button>
-                </div>
-              </div>
-            </Section>
-          </>
-        )}
-
-        {props.activeTab === "teaching" && (
-          <>
-            <div
-              style={{
-                background: `linear-gradient(135deg, ${THEME.redDark}, ${THEME.red})`,
-                borderRadius: 14,
-                padding: "22px 24px",
-                marginBottom: 18,
-                border: `2px solid ${THEME.gold}40`,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  marginBottom: 6,
-                }}
-              >
-                <span style={{ fontSize: 20 }}>🔒</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: THEME.gold,
-                    letterSpacing: "0.1em",
-                  }}
-                >
-                  TEACHING NOTES — FACULTY & ADMIN ONLY
-                </span>
-              </div>
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.82)" }}>
-                This section is not visible to students. Do not share this link
-                or content externally.
-              </div>
-            </div>
-
-            <Section title="FACILITATION OVERVIEW">
-              <p
-                style={{
-                  fontSize: 14,
-                  color: THEME.text,
-                  lineHeight: 1.75,
-                  margin: 0,
-                }}
-              >
-                {props.c.teachingNote}
-              </p>
-            </Section>
-
-            {[
-              {
-                label: "TIME BREAKDOWN",
-                icon: "⏱",
-                content: `0–15 min: Individual silent analysis\n15–45 min: Small group discussion (4–5 students)\n45–75 min: Full plenary — faculty-facilitated\n75–${props.c.duration} min: Synthesis and frameworks`,
-              },
-              {
-                label: "BOARD PLAN",
-                icon: "🗂",
-                content: `Column 1: Strategic Options\nColumn 2: Risk Analysis (probability × impact)\nColumn 3: Recommendation + rationale\nFaculty synthesis: introduce the framework after options are surfaced, not before.`,
-              },
-              {
-                label: "COMMON STUDENT MISTAKES",
-                icon: "⚠️",
-                content:
-                  "Students often jump to a recommendation before fully mapping the option space. Force them to name at least 4 strategic paths before evaluating any.\nSecond error: treating this as a finance case when it is fundamentally a leadership/identity case.",
-              },
-            ].map(({ label, icon, content }) => (
-              <Section key={label} title={`${icon} ${label}`}>
-                <pre
-                  style={{
-                    fontSize: 13,
-                    color: THEME.text,
-                    lineHeight: 1.75,
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    fontFamily: "sans-serif",
-                  }}
-                >
-                  {content}
-                </pre>
-              </Section>
-            ))}
-
-            <div
-              style={{
-                background: THEME.white,
-                borderRadius: 14,
-                padding: "18px 18px",
-                border: `1px solid ${THEME.border}`,
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div
-                style={{
-                  width: 42,
-                  height: 42,
-                  background: THEME.redDark,
-                  borderRadius: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                }}
-              >
-                📄
-              </div>
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{ fontSize: 13, fontWeight: 900, color: THEME.text }}
-                >
-                  {props.c.title} — Teaching Note v1.0
-                </div>
-                <div style={{ fontSize: 12, color: THEME.muted }}>
-                  Full facilitation guide PDF
-                </div>
-              </div>
-              <button
-                style={{
-                  ...primaryButton("solid"),
-                  padding: "9px 14px",
-                  borderRadius: 12,
-                }}
-              >
-                ⬇ Download TN
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function AdminScreen(props: {
-  cases: Case[];
-  tab: AdminTab;
-  setTab: (t: AdminTab) => void;
-  onLogout: () => void;
-  onOpen: (c: Case) => void;
-}) {
-  const stats = [
-    {
-      label: "Total Cases",
-      value: props.cases.length + 3,
-      color: THEME.redDark,
-      icon: "📚",
-    },
-    {
-      label: "Published",
-      value: props.cases.length,
-      color: THEME.teal,
-      icon: "✅",
-    },
-    { label: "In Review", value: 1, color: THEME.gold, icon: "🔍" },
-    { label: "Draft", value: 2, color: THEME.muted, icon: "✏️" },
+  const links: { label: string; page: Page }[] = [
+    { label: "Home", page: "home" },
+    { label: "Shop", page: "shop" },
+    { label: "About", page: "about" },
   ];
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: THEME.bg,
-        fontFamily: "sans-serif",
-      }}
-    >
-      <div
-        style={{
-          background: THEME.redDark,
-          padding: "0 32px",
-          display: "flex",
-          alignItems: "center",
-          height: 64,
-          boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginRight: 34,
-          }}
-        >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              background: THEME.gold,
-              borderRadius: 10,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 900,
-              color: THEME.redDark,
-              fontSize: 13,
-            }}
-          >
-            CA
+    <header style={{
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+      background: scrolled ? "rgba(253,248,243,0.97)" : B.cream,
+      backdropFilter: scrolled ? "blur(12px)" : "none",
+      borderBottom: `1px solid ${scrolled ? B.border : "transparent"}`,
+      boxShadow: scrolled ? "0 2px 20px rgba(42,36,32,0.07)" : "none",
+      transition: "all 0.3s",
+    }}>
+      <div style={{
+        maxWidth: 1280, margin: "0 auto",
+        padding: isMobile ? "0 20px" : "0 40px",
+        height: 68, display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        {/* Logo */}
+        <button onClick={() => navigate("home")} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" }}>
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 20 : 24, color: B.charcoal, fontWeight: 500, letterSpacing: "0.02em", lineHeight: 1 }}>
+            Alethia
           </div>
-          <div>
-            <div
-              style={{
-                color: THEME.white,
-                fontWeight: 900,
-                fontSize: 14,
-                fontFamily: "Georgia, serif",
-              }}
-            >
-              CEIBS Africa
-            </div>
-            <div
-              style={{
-                color: THEME.gold,
-                fontSize: 10,
-                letterSpacing: "0.12em",
-              }}
-            >
-              ADMIN DASHBOARD
-            </div>
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.24em", color: B.muted, textTransform: "uppercase" }}>
+            Clothing
           </div>
-        </div>
+        </button>
 
-        <div style={{ display: "flex", gap: 6 }}>
-          {(["cases", "upload", "analytics"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => props.setTab(t)}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 10,
-                border: "none",
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: props.tab === t ? 900 : 600,
-                background:
-                  props.tab === t ? "rgba(255,255,255,0.16)" : "transparent",
-                color: props.tab === t ? THEME.white : "rgba(255,255,255,0.72)",
-                textTransform: "capitalize",
-              }}
-            >
-              {t === "cases"
-                ? "📚 Cases"
-                : t === "upload"
-                ? "⬆ Upload"
-                : "📊 Analytics"}
+        {/* Desktop nav */}
+        {!isMobile && (
+          <nav style={{ display: "flex", gap: 36 }}>
+            {links.map(l => (
+              <button key={l.page} onClick={() => navigate(l.page)} style={{ background: "none", border: "none" }}>
+                <span className={`nav-link ${page === l.page ? "active" : ""}`}>{l.label}</span>
+              </button>
+            ))}
+          </nav>
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {/* Cart */}
+          <button onClick={onCartOpen} style={{ background: "none", border: "none", position: "relative", cursor: "pointer", padding: 6 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={B.charcoal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+            {cartCount > 0 && (
+              <span style={{
+                position: "absolute", top: 0, right: 0,
+                width: 16, height: 16, borderRadius: "50%",
+                background: B.rose, color: B.white,
+                fontSize: 9, fontWeight: 700,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>{cartCount}</span>
+            )}
+          </button>
+
+          {/* Mobile hamburger */}
+          {isMobile && (
+            <button onClick={() => setMenuOpen(o => !o)} style={{ background: "none", border: "none", padding: 6, cursor: "pointer" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={B.charcoal} strokeWidth="2" strokeLinecap="round">
+                {menuOpen
+                  ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
+                  : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+                }
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile dropdown */}
+      {isMobile && menuOpen && (
+        <div className="fade-in" style={{ background: B.cream, borderTop: `1px solid ${B.border}`, padding: "16px 24px 24px" }}>
+          {links.map(l => (
+            <button key={l.page} onClick={() => { navigate(l.page); setMenuOpen(false); }}
+              style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none",
+                borderBottom: `1px solid ${B.borderLight}`, padding: "14px 0",
+                fontFamily: SERIF, fontStyle: "italic", fontSize: 20,
+                color: page === l.page ? B.rose : B.charcoal, cursor: "pointer" }}>
+              {l.label}
             </button>
           ))}
         </div>
+      )}
+    </header>
+  );
+}
 
-        <button
-          onClick={props.onLogout}
-          style={{
-            marginLeft: "auto",
-            background: "none",
-            border: "none",
-            color: "rgba(255,255,255,0.75)",
-            fontSize: 12,
-            cursor: "pointer",
-            fontWeight: 800,
-          }}
-        >
-          Log out
+// ─── Cart Sidebar ─────────────────────────────────────────────────────────────
+function CartSidebar({ cart, cartTotal, onClose, updateQty, removeFromCart, navigate }: {
+  cart: CartItem[]; cartTotal: number; onClose: () => void;
+  updateQty: (i: number, d: number) => void; removeFromCart: (i: number) => void;
+  navigate: (p: Page) => void;
+}) {
+  return (
+    <div className="cart-sidebar">
+      <div style={{ padding: "20px 24px", borderBottom: `1px solid ${B.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 22, color: B.charcoal }}>Your Bag</div>
+          <div style={{ fontSize: 11, color: B.muted, marginTop: 2 }}>{cart.length} item{cart.length !== 1 ? "s" : ""}</div>
+        </div>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, opacity: 0.6 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={B.charcoal} strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px" }}>
-        {props.tab === "cases" && (
-          <>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 16,
-                marginBottom: 24,
-              }}
-            >
-              {stats.map((s) => (
-                <div
-                  key={s.label}
-                  style={{
-                    background: THEME.white,
-                    borderRadius: 14,
-                    padding: "18px 18px",
-                    border: `1px solid ${THEME.border}`,
-                    borderTop: `3px solid ${s.color}`,
-                  }}
-                >
-                  <div style={{ fontSize: 22, marginBottom: 6 }}>{s.icon}</div>
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 900,
-                      color: s.color,
-                      fontFamily: "Georgia, serif",
-                    }}
-                  >
-                    {s.value}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: THEME.muted,
-                      marginTop: 2,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {s.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                background: THEME.white,
-                borderRadius: 14,
-                border: `1px solid ${THEME.border}`,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  padding: "16px 18px",
-                  borderBottom: `1px solid ${THEME.border}`,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span
-                  style={{ fontWeight: 900, color: THEME.text, fontSize: 14 }}
-                >
-                  Case Registry
-                </span>
-                <button
-                  onClick={() => props.setTab("upload")}
-                  style={{
-                    ...primaryButton("solid"),
-                    padding: "9px 12px",
-                    borderRadius: 12,
-                  }}
-                >
-                  + Upload New Case
-                </button>
+      <div style={{ flex: 1, overflowY: "auto", padding: cart.length === 0 ? "60px 24px" : "20px 24px" }}>
+        {cart.length === 0 ? (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 44, marginBottom: 16 }}>🛍️</div>
+            <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 20, color: B.charcoal, marginBottom: 8 }}>Your bag is empty</div>
+            <p style={{ fontSize: 13, color: B.muted, marginBottom: 24 }}>Add something beautiful.</p>
+            <button className="btn-dark" onClick={() => navigate("shop")}>Shop Dresses</button>
+          </div>
+        ) : (
+          cart.map((item, i) => (
+            <div key={`${item.product.id}-${item.size}-${item.color}`} style={{
+              display: "flex", gap: 14,
+              paddingBottom: 18, marginBottom: 18,
+              borderBottom: i < cart.length - 1 ? `1px solid ${B.borderLight}` : "none",
+            }}>
+              <div style={{ width: 72, height: 90, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: B.ivory }}>
+                <img src={item.product.images[0]} alt={item.product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
-
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#F7F8FC" }}>
-                    {[
-                      "Code",
-                      "Title",
-                      "Programme",
-                      "Sector",
-                      "Status",
-                      "Actions",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        style={{
-                          padding: "10px 14px",
-                          textAlign: "left",
-                          fontSize: 11,
-                          color: THEME.muted,
-                          fontWeight: 900,
-                          letterSpacing: "0.06em",
-                          borderBottom: `1px solid ${THEME.border}`,
-                        }}
-                      >
-                        {h.toUpperCase()}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {props.cases.map((c, i) => (
-                    <tr
-                      key={c.id}
-                      style={{
-                        borderBottom: `1px solid ${THEME.border}`,
-                        background: i % 2 === 0 ? THEME.white : "#FAFBFE",
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: "10px 14px",
-                          fontSize: 11,
-                          fontFamily: "monospace",
-                          color: THEME.muted,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {c.code}
-                      </td>
-                      <td
-                        style={{
-                          padding: "10px 14px",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: THEME.text,
-                          maxWidth: 280,
-                        }}
-                      >
-                        {c.title}
-                      </td>
-                      <td style={{ padding: "10px 14px" }}>
-                        <span
-                          style={{
-                            ...chip(c.programme, programmeColor[c.programme]),
-                            fontSize: 10,
-                          }}
-                        >
-                          {c.programme}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          padding: "10px 14px",
-                          fontSize: 12,
-                          color: THEME.muted,
-                        }}
-                      >
-                        {c.sector}
-                      </td>
-                      <td style={{ padding: "10px 14px" }}>
-                        <span
-                          style={{
-                            ...chip("Published", THEME.teal),
-                            fontSize: 10,
-                          }}
-                        >
-                          Published
-                        </span>
-                      </td>
-                      <td style={{ padding: "10px 14px" }}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button
-                            onClick={() => props.onOpen(c)}
-                            style={primaryButton("ghost")}
-                          >
-                            View
-                          </button>
-                          <button
-                            style={{
-                              ...primaryButton("ghost"),
-                              color: THEME.muted,
-                            }}
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: SERIF, fontSize: 14, fontWeight: 500, color: B.charcoal, marginBottom: 2, lineHeight: 1.3 }}>{item.product.name}</div>
+                <div style={{ fontSize: 11, color: B.muted, marginBottom: 8 }}>{item.size} · {item.color}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <button className="qty-btn" onClick={() => updateQty(i, -1)}>−</button>
+                    <span style={{ fontSize: 13, fontWeight: 600, minWidth: 18, textAlign: "center" }}>{item.quantity}</span>
+                    <button className="qty-btn" onClick={() => updateQty(i, 1)}>+</button>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: B.charcoal }}>{fmt(item.product.price * item.quantity)}</div>
+                </div>
+              </div>
+              <button onClick={() => removeFromCart(i)} style={{ background: "none", border: "none", cursor: "pointer", alignSelf: "flex-start", padding: 2, opacity: 0.4 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={B.charcoal} strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
             </div>
-          </>
+          ))
         )}
+      </div>
 
-        {props.tab === "upload" && (
-          <div style={{ maxWidth: 680, margin: "0 auto" }}>
-            <h2
-              style={{
-                fontFamily: "Georgia, serif",
-                color: THEME.text,
-                marginBottom: 18,
-                fontWeight: 900,
-              }}
-            >
-              Upload New Case
-            </h2>
-            <div
-              style={{
-                background: THEME.white,
-                borderRadius: 14,
-                padding: "28px 28px",
-                border: `1px solid ${THEME.border}`,
-              }}
-            >
-              <Field label="CASE TITLE">
-                <input
-                  placeholder="e.g. FinTech Disruption in Ghana"
-                  style={inputStyle()}
-                />
-              </Field>
-              <Field label="CASE CODE">
-                <input placeholder="e.g. CA-2026-GH-001" style={inputStyle()} />
-              </Field>
-              <Field label="ABSTRACT">
-                <textarea
-                  placeholder="5–8 sentence case synopsis…"
-                  style={{ ...inputStyle(), height: 90, resize: "none" }}
-                />
-              </Field>
+      {cart.length > 0 && (
+        <div style={{ padding: "18px 24px 32px", borderTop: `1px solid ${B.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: B.muted, marginBottom: 5 }}>
+            <span>Subtotal</span>
+            <span style={{ color: B.charcoal, fontWeight: 600 }}>{fmt(cartTotal)}</span>
+          </div>
+          <div style={{ fontSize: 11, color: B.mutedLight, marginBottom: 18 }}>Shipping & taxes calculated at checkout.</div>
+          <button className="btn-dark" onClick={() => navigate("checkout")} style={{ width: "100%", marginBottom: 10, padding: "15px" }}>Checkout</button>
+          <button className="btn-outline-dark" onClick={() => navigate("cart")} style={{ width: "100%", padding: "14px" }}>View Full Bag</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 14,
-                  marginBottom: 16,
-                }}
-              >
-                <div>
-                  <label style={labelStyle()}>PROGRAMME</label>
-                  <select style={inputStyle()}>
-                    {PROGRAMMES.map((p) => (
-                      <option key={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle()}>STATUS</label>
-                  <select style={inputStyle()}>
-                    {["Draft", "Under Review", "Approved", "Published"].map(
-                      (s) => (
-                        <option key={s}>{s}</option>
-                      )
-                    )}
-                  </select>
-                </div>
-              </div>
+// ─── Home Page ────────────────────────────────────────────────────────────────
+function HomePage({ navigate }: {
+  navigate: (p: Page, product?: Product) => void;
+  addToCart: (item: CartItem) => void;
+  cart: CartItem[]; cartCount: number; cartTotal: number;
+  updateQty: (i: number, d: number) => void; removeFromCart: (i: number) => void;
+}) {
+  const isMobile = useWindowWidth() < 768;
+  const featured = PRODUCTS.filter(p => p.featured);
 
-              <Field label="CASE PDF (Google Drive /preview link)">
-                <input
-                  placeholder="https://drive.google.com/file/d/.../preview"
-                  style={inputStyle()}
-                />
-              </Field>
-
-              <Field label="TEACHING NOTE PDF (Faculty-only link)">
-                <input
-                  placeholder="Restricted Google Drive link — faculty only"
-                  style={{ ...inputStyle(), borderColor: `${THEME.gold}` }}
-                />
-              </Field>
-
-              <button
-                style={{
-                  ...primaryButton("solid"),
-                  width: "100%",
-                  borderRadius: 12,
-                }}
-              >
-                Save Case (as Draft)
+  return (
+    <>
+      {/* ── Hero ── */}
+      <section style={{ position: "relative", height: isMobile ? "85vh" : "100vh", minHeight: isMobile ? 480 : 600, display: "flex", alignItems: "center", overflow: "hidden" }}>
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "url(https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=85)",
+          backgroundSize: "cover", backgroundPosition: "center 20%",
+          transition: "transform 8s ease",
+        }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(110deg, rgba(26,22,18,0.74) 0%, rgba(26,22,18,0.42) 55%, rgba(26,22,18,0.12) 100%)" }} />
+        <div style={{ position: "relative", zIndex: 2, maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 28px" : "0 80px", width: "100%" }}>
+          <div style={{ maxWidth: 580 }}>
+            <div className="fade-up" style={{ fontSize: 11, letterSpacing: "0.24em", color: "rgba(253,248,243,0.6)", textTransform: "uppercase", fontWeight: 600, marginBottom: 22 }}>
+              Women's Boutique Dresses
+            </div>
+            <h1 className="fade-up delay-1" style={{
+              fontFamily: SERIF, fontStyle: "italic",
+              fontSize: isMobile ? 52 : 86,
+              fontWeight: 400, lineHeight: 1.07,
+              color: B.cream, marginBottom: 22, letterSpacing: "-0.01em",
+            }}>
+              Alethia<br />Clothing
+            </h1>
+            <p className="fade-up delay-2" style={{ fontSize: isMobile ? 16 : 20, color: "rgba(253,248,243,0.72)", fontWeight: 300, letterSpacing: "0.05em", marginBottom: 44, fontFamily: SANS }}>
+              Dressed in grace.
+            </p>
+            <div className="fade-up delay-3" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              <button className="btn-rose" onClick={() => navigate("shop")} style={{ padding: isMobile ? "12px 26px" : "15px 36px", fontSize: isMobile ? 11 : 12 }}>
+                Shop Dresses
+              </button>
+              <button className="btn-outline-light" onClick={() => navigate("about")} style={{ padding: isMobile ? "11px 26px" : "14px 36px", fontSize: isMobile ? 11 : 12 }}>
+                Our Story
               </button>
             </div>
           </div>
+        </div>
+        {!isMobile && (
+          <div style={{ position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 1, height: 52, background: "rgba(253,248,243,0.28)" }} />
+            <div style={{ fontSize: 9, color: "rgba(253,248,243,0.38)", letterSpacing: "0.18em", textTransform: "uppercase" }}>Scroll</div>
+          </div>
         )}
+      </section>
 
-        {props.tab === "analytics" && (
-          <div>
-            <h2
-              style={{
-                fontFamily: "Georgia, serif",
-                color: THEME.text,
-                marginBottom: 18,
-                fontWeight: 900,
-              }}
-            >
-              Programme Analytics
-            </h2>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 18,
-                marginBottom: 18,
-              }}
-            >
-              {[
-                {
-                  title: "Most Active Programme",
-                  value: "GEMBA 2025",
-                  sub: "847 case opens this semester",
-                  icon: "🏆",
-                },
-                {
-                  title: "Pre-class Completion Rate",
-                  value: "82%",
-                  sub: "Students reading before class",
-                  icon: "📖",
-                },
-                {
-                  title: "Avg. Discussion Posts / Case",
-                  value: "12.4",
-                  sub: "Up 34% from last cohort",
-                  icon: "💬",
-                },
-                {
-                  title: "Most Opened Case",
-                  value: "Standard Bank AI Dilemma",
-                  sub: "CA-2026-ZA-005 · 124 opens",
-                  icon: "🔥",
-                },
-              ].map((s) => (
-                <div
-                  key={s.title}
-                  style={{
-                    background: THEME.white,
-                    borderRadius: 14,
-                    padding: "18px 18px",
-                    border: `1px solid ${THEME.border}`,
-                  }}
-                >
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: THEME.muted,
-                      fontWeight: 900,
-                      letterSpacing: "0.08em",
-                      marginBottom: 6,
-                    }}
-                  >
-                    {s.title.toUpperCase()}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 900,
-                      color: THEME.text,
-                      fontFamily: "Georgia, serif",
-                    }}
-                  >
-                    {s.value}
-                  </div>
-                  <div
-                    style={{ fontSize: 12, color: THEME.muted, marginTop: 4 }}
-                  >
-                    {s.sub}
-                  </div>
-                </div>
-              ))}
+      {/* ── Brand strip ── */}
+      <div style={{ background: B.charcoal, padding: isMobile ? "20px" : "20px 40px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", justifyContent: "center", gap: isMobile ? 22 : 56, flexWrap: "wrap" }}>
+          {[["🚚", "Free Shipping $150+"], ["♻️", "Ethically Sourced"], ["✨", "Complimentary Styling"], ["↩️", "30-Day Returns"]].map(([icon, text]) => (
+            <div key={String(text)} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <span style={{ fontSize: 13 }}>{icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(253,248,243,0.62)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{text}</span>
             </div>
-
-            <Section title="CASES BY SECTOR">
-              {[
-                ["Banking", 2, THEME.redDark],
-                ["Manufacturing", 1, THEME.teal],
-                ["Energy", 1, THEME.gold],
-                ["Real Estate", 1, "#7C3AED"],
-                ["Telecoms", 1, THEME.red],
-              ].map(([sector, count, color]) => (
-                <div
-                  key={String(sector)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    marginBottom: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 110,
-                      fontSize: 12,
-                      color: THEME.text,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {sector as string}
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      height: 10,
-                      background: "#EEF2F7",
-                      borderRadius: 999,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${Number(count) * 33}%`,
-                        height: "100%",
-                        background: color as string,
-                        borderRadius: 999,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      width: 24,
-                      fontSize: 12,
-                      color: THEME.muted,
-                      textAlign: "right",
-                      fontWeight: 800,
-                    }}
-                  >
-                    {count as number}
-                  </div>
-                </div>
-              ))}
-            </Section>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* ── New Arrivals ── */}
+      <section style={{ padding: isMobile ? "52px 20px" : "80px 40px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+          <div className="fade-up" style={{ textAlign: "center", marginBottom: isMobile ? 36 : 52 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.22em", color: B.rose, textTransform: "uppercase", marginBottom: 12 }}>The Edit</div>
+            <h2 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 34 : 50, fontWeight: 400, color: B.charcoal }}>New Arrivals</h2>
+            <div style={{ width: 44, height: 1, background: B.gold, margin: "18px auto 0" }} />
+          </div>
+          <div className="featured-grid">
+            {featured.map((p, i) => (
+              <div key={p.id} className={`fade-up delay-${(i % 6) + 1}`}>
+                <ProductCard product={p} navigate={navigate} />
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 48 }}>
+            <button className="btn-outline-dark" onClick={() => navigate("shop")}>View All Dresses</button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Quote banner ── */}
+      <section style={{ background: B.ivory, borderTop: `1px solid ${B.border}`, borderBottom: `1px solid ${B.border}`, padding: isMobile ? "52px 28px" : "84px 40px", textAlign: "center" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto" }}>
+          <div style={{ fontSize: isMobile ? 44 : 60, color: B.goldLight, fontFamily: SERIF, lineHeight: 0.7, marginBottom: 22 }}>"</div>
+          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 20 : 30, fontWeight: 400, color: B.charcoal, lineHeight: 1.55, marginBottom: 22 }}>
+            Every woman deserves to feel like she walked out of a painting.
+          </p>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.2em", color: B.muted, textTransform: "uppercase" }}>— Amara Osei, Founder</div>
+        </div>
+      </section>
+
+      {/* ── Shop by Style ── */}
+      <section style={{ padding: isMobile ? "52px 20px" : "80px 40px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: isMobile ? 32 : 48 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.22em", color: B.rose, textTransform: "uppercase", marginBottom: 12 }}>Explore</div>
+            <h2 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 30 : 44, fontWeight: 400, color: B.charcoal }}>Shop by Style</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 12 : 18 }}>
+            {[
+              { label: "Casual",  img: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=500&q=75" },
+              { label: "Formal",  img: "https://images.unsplash.com/photo-1517690623533-b4c8f3fe30e8?auto=format&fit=crop&w=500&q=75" },
+              { label: "Maxi",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=500&q=75" },
+              { label: "Boho",    img: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=500&q=75" },
+            ].map(cat => (
+              <StyleTile key={cat.label} label={cat.label} img={cat.img} onClick={() => navigate("shop")} isMobile={isMobile} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 
-function TopNav(props: {
-  leftTitle: string;
-  leftSubtitle: string;
-  badge: string;
-  onLogout: () => void;
-}) {
+function StyleTile({ label, img, onClick, isMobile }: { label: string; img: string; onClick: () => void; isMobile: boolean }) {
+  const [hover, setHover] = useState(false);
   return (
-    <div
-      style={{
-        background: THEME.redDark,
-        padding: "0 32px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        height: 64,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div
-          style={{
-            width: 34,
-            height: 34,
-            background: THEME.gold,
-            borderRadius: 10,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 900,
-            color: THEME.redDark,
-            fontSize: 13,
-          }}
-        >
-          CA
-        </div>
-        <div>
-          <div
-            style={{
-              color: THEME.white,
-              fontWeight: 900,
-              fontSize: 14,
-              fontFamily: "Georgia, serif",
-              letterSpacing: "0.03em",
-            }}
-          >
-            {props.leftTitle}
-          </div>
-          <div
-            style={{ color: THEME.gold, fontSize: 10, letterSpacing: "0.12em" }}
-          >
-            {props.leftSubtitle}
-          </div>
-        </div>
+    <button onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ position: "relative", aspectRatio: "3/4", border: "none", overflow: "hidden", borderRadius: 8, cursor: "pointer", background: B.ivory, display: "block" }}>
+      <img src={img} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease", transform: hover ? "scale(1.06)" : "scale(1)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,22,18,0.58) 0%, transparent 55%)" }} />
+      <div style={{ position: "absolute", bottom: isMobile ? 14 : 18, left: 0, right: 0, textAlign: "center" }}>
+        <span style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 18 : 24, color: B.cream, fontWeight: 400 }}>{label}</span>
       </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-        <div
-          style={{
-            display: "flex",
-            gap: 4,
-            background: "rgba(255,255,255,0.10)",
-            borderRadius: 999,
-            padding: "4px 12px",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 11,
-              color: THEME.gold,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              fontWeight: 900,
-            }}
-          >
-            {props.badge}
-          </span>
-        </div>
-        <div
-          style={{ width: 1, height: 20, background: "rgba(255,255,255,0.22)" }}
-        />
-        <button
-          onClick={props.onLogout}
-          style={{
-            background: "none",
-            border: "none",
-            color: "rgba(255,255,255,0.75)",
-            fontSize: 12,
-            cursor: "pointer",
-            fontWeight: 900,
-          }}
-        >
-          Log out
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function FilterChip(props: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  color: string;
-}) {
-  return (
-    <button
-      onClick={props.onClick}
-      style={{
-        padding: "6px 12px",
-        borderRadius: 999,
-        border: `1px solid ${props.active ? props.color : THEME.border}`,
-        background: props.active ? props.color : THEME.white,
-        color: props.active ? THEME.white : THEME.text,
-        fontSize: 12,
-        fontWeight: props.active ? 900 : 700,
-        cursor: "pointer",
-        transition: "all 0.12s",
-      }}
-    >
-      {props.label}
     </button>
   );
 }
 
-function Section(props: { title: string; children: React.ReactNode }) {
+// ─── Product Card ─────────────────────────────────────────────────────────────
+function ProductCard({ product: p, navigate }: {
+  product: Product; navigate: (pg: Page, product?: Product) => void;
+}) {
   return (
-    <div
-      style={{
-        background: THEME.white,
-        borderRadius: 14,
-        padding: "22px 22px",
-        marginBottom: 18,
-        border: `1px solid ${THEME.border}`,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 900,
-          color: THEME.muted,
-          letterSpacing: "0.1em",
-          marginBottom: 14,
-        }}
-      >
-        {props.title}
+    <div className="product-card" onClick={() => navigate("product", p)}>
+      <div className="card-img">
+        <img src={p.images[0]} alt={p.name} loading="lazy" />
+        {p.tag && (
+          <div style={{ position: "absolute", top: 12, left: 12, background: TAG_COLORS[p.tag] ?? B.rose, color: B.white, fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 2 }}>
+            {p.tag}
+          </div>
+        )}
       </div>
-      {props.children}
+      <div style={{ padding: "15px 16px 20px" }}>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: B.rose, textTransform: "uppercase", marginBottom: 5 }}>{p.category[0]}</div>
+        <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 500, color: B.charcoal, marginBottom: 8, lineHeight: 1.3 }}>{p.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 600, color: B.charcoal }}>{fmt(p.price)}</span>
+          {p.originalPrice && <span style={{ fontSize: 12, color: B.mutedLight, textDecoration: "line-through" }}>{fmt(p.originalPrice)}</span>}
+        </div>
+        <div style={{ display: "flex", gap: 5, marginTop: 10, flexWrap: "wrap" }}>
+          {p.colors.slice(0, 4).map(c => (
+            <div key={c.name} title={c.name} style={{ width: 13, height: 13, borderRadius: "50%", background: c.hex, border: "1px solid rgba(42,36,32,0.15)" }} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-function Divider() {
-  return (
-    <div style={{ width: 1, background: THEME.border, margin: "0 6px" }} />
-  );
-}
+// ─── Shop Page ────────────────────────────────────────────────────────────────
+function ShopPage({ navigate }: {
+  navigate: (p: Page, product?: Product) => void;
+  addToCart: (item: CartItem) => void;
+  cart: CartItem[]; cartCount: number; cartTotal: number;
+  updateQty: (i: number, d: number) => void; removeFromCart: (i: number) => void;
+}) {
+  const isMobile = useWindowWidth() < 768;
+  const [activeFilter, setFilter] = useState("All");
+  const [sort, setSort] = useState<"featured" | "price-asc" | "price-desc" | "newest">("featured");
 
-function Field(props: { label: string; children: React.ReactNode }) {
+  const FILTERS = ["All", "Casual", "Formal", "Boho", "Mini", "Midi", "Maxi"];
+
+  const list = useMemo(() => {
+    let items = activeFilter === "All" ? PRODUCTS : PRODUCTS.filter(p => p.category.includes(activeFilter));
+    if (sort === "price-asc")  items = [...items].sort((a, b) => a.price - b.price);
+    if (sort === "price-desc") items = [...items].sort((a, b) => b.price - a.price);
+    if (sort === "newest")     items = [...items].sort((a) => (a.tag === "New" ? -1 : 0));
+    if (sort === "featured")   items = [...items].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+    return items;
+  }, [activeFilter, sort]);
+
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={labelStyle()}>{props.label}</label>
-      {props.children}
+    <div style={{ paddingTop: 68 }}>
+      <div style={{ background: B.ivory, borderBottom: `1px solid ${B.border}`, padding: isMobile ? "36px 20px 28px" : "56px 40px 40px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.22em", color: B.rose, textTransform: "uppercase", marginBottom: 10 }}>Our Collection</div>
+          <h1 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 36 : 54, fontWeight: 400, color: B.charcoal, marginBottom: 10 }}>Shop All Dresses</h1>
+          <p style={{ fontSize: 14, color: B.muted, maxWidth: 480, lineHeight: 1.7 }}>Curated with intention — every dress in the Alethia collection is designed to make you feel extraordinary.</p>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "28px 20px" : "36px 40px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28, flexWrap: "wrap", gap: 14 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {FILTERS.map(f => (
+              <button key={f} className={`filter-chip ${activeFilter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 12, color: B.muted }}>{list.length} items</span>
+            <select value={sort} onChange={e => setSort(e.target.value as typeof sort)}
+              style={{ padding: "8px 12px", border: `1px solid ${B.border}`, borderRadius: 4, fontSize: 12, color: B.charcoal, background: B.white, outline: "none", cursor: "pointer" }}>
+              <option value="featured">Featured</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="newest">New Arrivals</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="product-grid">
+          {list.map((p, i) => (
+            <div key={p.id} className={`fade-up delay-${Math.min((i % 6) + 1, 6)}`}>
+              <ProductCard product={p} navigate={navigate} />
+            </div>
+          ))}
+        </div>
+
+        {list.length === 0 && (
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 24, color: B.charcoal, marginBottom: 12 }}>No dresses found</div>
+            <button className="btn-outline-dark" onClick={() => setFilter("All")}>Clear Filter</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function labelStyle(): React.CSSProperties {
-  return {
-    display: "block",
-    fontSize: 11,
-    fontWeight: 900,
-    color: THEME.muted,
-    marginBottom: 6,
-    letterSpacing: "0.08em",
-    fontFamily: "sans-serif",
+// ─── Product Detail ───────────────────────────────────────────────────────────
+function ProductDetailPage({ product: p, navigate, addToCart }: {
+  product: Product;
+  navigate: (pg: Page, product?: Product) => void;
+  addToCart: (item: CartItem) => void;
+  cart: CartItem[]; cartCount: number; cartTotal: number;
+  updateQty: (i: number, d: number) => void; removeFromCart: (i: number) => void;
+}) {
+  const isMobile = useWindowWidth() < 1024;
+  const [mainImg, setMainImg]     = useState(0);
+  const [selSize, setSize]        = useState<Size | null>(null);
+  const [selColor, setColor]      = useState(p.colors[0].name);
+  const [qty, setQty]             = useState(1);
+  const [detailsOpen, setDetails] = useState(false);
+  const [added, setAdded]         = useState(false);
+
+  useEffect(() => { setMainImg(0); setSize(null); setColor(p.colors[0].name); setQty(1); setAdded(false); }, [p.id]);
+
+  const related = PRODUCTS.filter(r => r.id !== p.id && r.category.some(c => p.category.includes(c))).slice(0, 4);
+
+  const handleAdd = () => {
+    if (!selSize) { alert("Please select a size."); return; }
+    addToCart({ product: p, quantity: qty, size: selSize, color: selColor });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2500);
   };
+
+  return (
+    <div style={{ paddingTop: 68 }}>
+      {/* Breadcrumb */}
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "16px 20px 0" : "18px 40px 0" }}>
+        <div style={{ display: "flex", gap: 8, fontSize: 11, color: B.muted, flexWrap: "wrap" }}>
+          {[["Home", "home"], ["Shop", "shop"]].map(([label, pg]) => (
+            <React.Fragment key={pg}>
+              <button onClick={() => navigate(pg as Page)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: B.muted, letterSpacing: "0.05em" }}>{label}</button>
+              <span>›</span>
+            </React.Fragment>
+          ))}
+          <span style={{ color: B.charcoal }}>{p.name}</span>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "24px 20px 56px" : "36px 40px 88px" }}>
+        <div className="detail-layout">
+          {/* Images */}
+          <div>
+            <div style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "3/4", background: B.ivory, marginBottom: 14 }}>
+              <img src={p.images[mainImg]} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              {p.images.map((img, i) => (
+                <img key={i} src={img} alt="" className={`gallery-thumb ${mainImg === i ? "active" : ""}`} onClick={() => setMainImg(i)} />
+              ))}
+            </div>
+          </div>
+
+          {/* Info */}
+          <div>
+            {p.tag && (
+              <div style={{ display: "inline-block", background: TAG_COLORS[p.tag] ?? B.rose, color: B.white, fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 2, marginBottom: 14 }}>
+                {p.tag}
+              </div>
+            )}
+            <h1 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 30 : 42, fontWeight: 400, color: B.charcoal, lineHeight: 1.2, marginBottom: 12 }}>{p.name}</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
+              <span style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 500, color: B.charcoal }}>{fmt(p.price)}</span>
+              {p.originalPrice && <span style={{ fontSize: 16, color: B.mutedLight, textDecoration: "line-through" }}>{fmt(p.originalPrice)}</span>}
+            </div>
+            <p style={{ fontSize: 14, color: B.muted, lineHeight: 1.8, marginBottom: 28 }}>{p.description}</p>
+
+            {/* Color selector */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: B.charcoal, marginBottom: 12 }}>
+                Colour: <span style={{ fontWeight: 400, textTransform: "none", color: B.muted, letterSpacing: "0.03em" }}>{selColor}</span>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {p.colors.map(c => (
+                  <button key={c.name} title={c.name} onClick={() => setColor(c.name)}
+                    style={{ width: 32, height: 32, borderRadius: "50%", background: c.hex, border: "none", cursor: "pointer",
+                      boxShadow: selColor === c.name ? `0 0 0 2px ${B.white}, 0 0 0 4px ${B.charcoal}` : `0 0 0 1.5px rgba(42,36,32,0.18)`,
+                      transition: "box-shadow 0.15s" }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Size selector */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: B.charcoal }}>Size</div>
+                <button style={{ background: "none", border: "none", fontSize: 11, color: B.rose, cursor: "pointer", textDecoration: "underline" }}>Size Guide</button>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {(["XS", "S", "M", "L", "XL", "XXL"] as Size[]).map(s => {
+                  const avail = p.sizes.includes(s);
+                  return (
+                    <button key={s} disabled={!avail} onClick={() => avail && setSize(s)}
+                      className={`size-btn ${selSize === s ? "selected" : ""} ${!avail ? "unavailable" : ""}`}>{s}</button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Qty + Add */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "stretch" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, border: `1px solid ${B.border}`, borderRadius: 4, padding: "0 12px" }}>
+                <button className="qty-btn" onClick={() => setQty(q => Math.max(1, q - 1))} style={{ border: "none" }}>−</button>
+                <span style={{ fontSize: 14, fontWeight: 600, minWidth: 20, textAlign: "center" }}>{qty}</span>
+                <button className="qty-btn" onClick={() => setQty(q => q + 1)} style={{ border: "none" }}>+</button>
+              </div>
+              <button className={added ? "btn-rose" : "btn-dark"} onClick={handleAdd} style={{ flex: 1, padding: "14px 20px" }}>
+                {added ? "✓  Added to Bag" : "Add to Bag"}
+              </button>
+            </div>
+            <button className="btn-outline-dark" style={{ width: "100%", marginBottom: 28, padding: "13px" }}>♡  Save to Wishlist</button>
+
+            {/* Details accordion */}
+            <button className="accordion-row" onClick={() => setDetails(o => !o)}>
+              <span>Product Details</span>
+              <span style={{ fontSize: 20, fontWeight: 200, lineHeight: 1, transform: detailsOpen ? "rotate(45deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>+</span>
+            </button>
+            {detailsOpen && (
+              <ul style={{ padding: "14px 0 14px 18px", listStyle: "disc", fontSize: 13, color: B.muted, lineHeight: 2.1 }}>
+                {p.details.map((d, i) => <li key={i}>{d}</li>)}
+              </ul>
+            )}
+            <div style={{ borderTop: `1px solid ${B.border}`, padding: "14px 0", fontSize: 12, color: B.muted, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 15 }}>🚚</span>
+              Free shipping on orders over $150 · Easy 30-day returns
+            </div>
+          </div>
+        </div>
+
+        {/* Related */}
+        {related.length > 0 && (
+          <div style={{ marginTop: isMobile ? 56 : 88 }}>
+            <div style={{ textAlign: "center", marginBottom: 36 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.22em", color: B.rose, textTransform: "uppercase", marginBottom: 10 }}>You May Also Love</div>
+              <h2 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 28 : 38, fontWeight: 400, color: B.charcoal }}>Related Styles</h2>
+            </div>
+            <div className="product-grid">
+              {related.map((r, i) => (
+                <div key={r.id} className={`fade-up delay-${i + 1}`}>
+                  <ProductCard product={r} navigate={navigate} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function inputStyle(): React.CSSProperties {
-  return {
-    width: "100%",
-    padding: "12px 14px",
-    border: `1px solid ${THEME.border}`,
-    borderRadius: 12,
-    fontSize: 14,
-    fontFamily: "sans-serif",
-    outline: "none",
-    boxSizing: "border-box",
-    background: "#FAFBFE",
+// ─── Cart Page ────────────────────────────────────────────────────────────────
+function CartPage({ cart, cartTotal, updateQty, removeFromCart, navigate, placeOrder }: {
+  cart: CartItem[]; cartTotal: number;
+  updateQty: (i: number, d: number) => void; removeFromCart: (i: number) => void;
+  navigate: (p: Page, product?: Product) => void; placeOrder: () => void;
+  addToCart: (item: CartItem) => void; cartCount: number;
+}) {
+  const isMobile = useWindowWidth() < 1024;
+  const shipping = cartTotal >= 150 ? 0 : 12.95;
+  const tax = cartTotal * 0.08;
+
+  return (
+    <div style={{ paddingTop: 68, minHeight: "80vh" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "32px 20px 64px" : "52px 40px 88px" }}>
+        <h1 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 34 : 48, fontWeight: 400, color: B.charcoal, marginBottom: 36 }}>Shopping Bag</h1>
+
+        {cart.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "72px 0" }}>
+            <div style={{ fontSize: 60, marginBottom: 18 }}>🛍️</div>
+            <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 28, color: B.charcoal, marginBottom: 12 }}>Your bag is empty</div>
+            <p style={{ color: B.muted, marginBottom: 28, fontSize: 14 }}>Discover something beautiful in our collection.</p>
+            <button className="btn-rose" onClick={() => navigate("shop")} style={{ padding: "14px 36px" }}>Shop All Dresses</button>
+          </div>
+        ) : (
+          <div className="cart-layout">
+            {/* Items list */}
+            <div>
+              {cart.map((item, i) => (
+                <div key={`${item.product.id}-${item.size}-${item.color}`} style={{ display: "flex", gap: isMobile ? 14 : 22, paddingBottom: 28, marginBottom: 28, borderBottom: i < cart.length - 1 ? `1px solid ${B.border}` : "none" }}>
+                  <div onClick={() => navigate("product", item.product)} style={{ width: isMobile ? 88 : 120, height: isMobile ? 108 : 150, borderRadius: 8, overflow: "hidden", flexShrink: 0, cursor: "pointer", background: B.ivory }}>
+                    <img src={item.product.images[0]} alt={item.product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 12 }}>
+                      <div onClick={() => navigate("product", item.product)} style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 17 : 21, color: B.charcoal, cursor: "pointer", lineHeight: 1.3 }}>{item.product.name}</div>
+                      <div style={{ fontFamily: SERIF, fontSize: isMobile ? 16 : 19, fontWeight: 500, color: B.charcoal, whiteSpace: "nowrap" }}>{fmt(item.product.price * item.quantity)}</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: B.muted, marginBottom: 5 }}>Size: {item.size}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 16 }}>
+                      <div style={{ width: 14, height: 14, borderRadius: "50%", background: item.product.colors.find(c => c.name === item.color)?.hex ?? "#ccc", border: "1px solid rgba(0,0,0,0.1)" }} />
+                      <span style={{ fontSize: 12, color: B.muted }}>{item.color}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <button className="qty-btn" onClick={() => updateQty(i, -1)}>−</button>
+                        <span style={{ fontSize: 14, fontWeight: 600, minWidth: 24, textAlign: "center" }}>{item.quantity}</span>
+                        <button className="qty-btn" onClick={() => updateQty(i, 1)}>+</button>
+                      </div>
+                      <button onClick={() => removeFromCart(i)} style={{ background: "none", border: "none", fontSize: 11, color: B.muted, cursor: "pointer", textDecoration: "underline" }}>Remove</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary */}
+            <div style={{ background: B.ivory, borderRadius: 10, padding: "28px 24px", border: `1px solid ${B.border}`, position: "sticky", top: 84 }}>
+              <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 20, color: B.charcoal, marginBottom: 22 }}>Order Summary</div>
+              {[["Subtotal", fmt(cartTotal)], ["Shipping", shipping === 0 ? "Free" : fmt(shipping)], ["Est. Tax", fmt(tax)]].map(([l, v]) => (
+                <div key={String(l)} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 12, color: B.muted }}>
+                  <span>{l}</span><span style={{ color: B.charcoal, fontWeight: 500 }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: `1px solid ${B.border}`, marginTop: 16, paddingTop: 16, display: "flex", justifyContent: "space-between", fontSize: 17, fontWeight: 700, color: B.charcoal, marginBottom: 22 }}>
+                <span>Total</span><span>{fmt(cartTotal + shipping + tax)}</span>
+              </div>
+              {shipping > 0 && (
+                <div style={{ fontSize: 11, color: B.rose, marginBottom: 16, textAlign: "center", fontWeight: 500 }}>
+                  Add {fmt(150 - cartTotal)} more for free shipping!
+                </div>
+              )}
+              <button className="btn-dark" onClick={() => navigate("checkout")} style={{ width: "100%", padding: "15px", marginBottom: 10 }}>Proceed to Checkout</button>
+              <button className="btn-outline-dark" onClick={() => navigate("shop")} style={{ width: "100%", padding: "13px" }}>Continue Shopping</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Checkout Page ────────────────────────────────────────────────────────────
+function CheckoutPage({ cart, cartTotal, navigate, placeOrder }: {
+  cart: CartItem[]; cartTotal: number;
+  navigate: (p: Page) => void; placeOrder: () => void;
+  addToCart: (item: CartItem) => void; cartCount: number;
+  updateQty: (i: number, d: number) => void; removeFromCart: (i: number) => void;
+}) {
+  const isMobile = useWindowWidth() < 1024;
+  const shipping = cartTotal >= 150 ? 0 : 12.95;
+  const tax      = cartTotal * 0.08;
+
+  const [form, setForm] = useState({
+    firstName: "", lastName: "", email: "", phone: "",
+    address: "", city: "", state: "", zip: "", country: "United States",
+    cardName: "", cardNumber: "", expiry: "", cvv: "",
+  });
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    placeOrder();
   };
+
+  const lbl: React.CSSProperties = { display: "block", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: B.muted, marginBottom: 6 };
+
+  return (
+    <div style={{ paddingTop: 68, minHeight: "80vh" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "32px 20px 64px" : "52px 40px 88px" }}>
+        <h1 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 32 : 46, fontWeight: 400, color: B.charcoal, marginBottom: 36 }}>Checkout</h1>
+
+        <form onSubmit={handleSubmit}>
+          <div className="checkout-layout">
+            {/* Form */}
+            <div>
+              <FormCard title="Contact Information">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+                  <div><label style={lbl}>First Name</label><input required className="form-input" value={form.firstName} onChange={set("firstName")} placeholder="Jane" /></div>
+                  <div><label style={lbl}>Last Name</label><input required className="form-input" value={form.lastName} onChange={set("lastName")} placeholder="Doe" /></div>
+                </div>
+                <div style={{ marginBottom: 14 }}><label style={lbl}>Email</label><input required type="email" className="form-input" value={form.email} onChange={set("email")} placeholder="jane@example.com" /></div>
+                <div><label style={lbl}>Phone</label><input className="form-input" value={form.phone} onChange={set("phone")} placeholder="+1 (555) 000-0000" /></div>
+              </FormCard>
+
+              <FormCard title="Shipping Address">
+                <div style={{ marginBottom: 14 }}><label style={lbl}>Address</label><input required className="form-input" value={form.address} onChange={set("address")} placeholder="123 Rose Lane" /></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+                  <div><label style={lbl}>City</label><input required className="form-input" value={form.city} onChange={set("city")} placeholder="New York" /></div>
+                  <div><label style={lbl}>State / Province</label><input required className="form-input" value={form.state} onChange={set("state")} placeholder="NY" /></div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div><label style={lbl}>ZIP / Postal</label><input required className="form-input" value={form.zip} onChange={set("zip")} placeholder="10001" /></div>
+                  <div>
+                    <label style={lbl}>Country</label>
+                    <select className="form-input" value={form.country} onChange={set("country")} style={{ cursor: "pointer" }}>
+                      {["United States","Canada","United Kingdom","Australia","France","Germany","South Africa"].map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </FormCard>
+
+              <FormCard title="Payment Details">
+                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 18, padding: "10px 14px", background: B.rosePale, borderRadius: 6, fontSize: 12, color: B.roseDeep }}>
+                  🔒 Your payment information is secure and encrypted.
+                </div>
+                <div style={{ marginBottom: 14 }}><label style={lbl}>Name on Card</label><input required className="form-input" value={form.cardName} onChange={set("cardName")} placeholder="Jane Doe" /></div>
+                <div style={{ marginBottom: 14 }}><label style={lbl}>Card Number</label><input required className="form-input" value={form.cardNumber} onChange={set("cardNumber")} placeholder="•••• •••• •••• ••••" maxLength={19} /></div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div><label style={lbl}>Expiry</label><input required className="form-input" value={form.expiry} onChange={set("expiry")} placeholder="MM / YY" /></div>
+                  <div><label style={lbl}>CVV</label><input required className="form-input" value={form.cvv} onChange={set("cvv")} placeholder="•••" maxLength={4} /></div>
+                </div>
+              </FormCard>
+            </div>
+
+            {/* Summary */}
+            <div>
+              <div style={{ background: B.ivory, borderRadius: 10, padding: "26px 22px", border: `1px solid ${B.border}`, position: "sticky", top: 84 }}>
+                <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, color: B.charcoal, marginBottom: 20 }}>Order Summary</div>
+                <div style={{ maxHeight: 280, overflowY: "auto", marginBottom: 18 }}>
+                  {cart.map(item => (
+                    <div key={`${item.product.id}-${item.size}`} style={{ display: "flex", gap: 12, marginBottom: 14, alignItems: "flex-start" }}>
+                      <div style={{ position: "relative" }}>
+                        <div style={{ width: 52, height: 64, borderRadius: 5, overflow: "hidden", background: B.border }}>
+                          <img src={item.product.images[0]} alt={item.product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                        <div style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, background: B.charcoal, color: B.white, borderRadius: "50%", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{item.quantity}</div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: B.charcoal, lineHeight: 1.3 }}>{item.product.name}</div>
+                        <div style={{ fontSize: 11, color: B.muted }}>{item.size} · {item.color}</div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: B.charcoal, whiteSpace: "nowrap" }}>{fmt(item.product.price * item.quantity)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ borderTop: `1px solid ${B.border}`, paddingTop: 14 }}>
+                  {[["Subtotal", fmt(cartTotal)], ["Shipping", shipping === 0 ? "Free" : fmt(shipping)], ["Tax", fmt(tax)]].map(([l, v]) => (
+                    <div key={String(l)} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 10, color: B.muted }}>
+                      <span>{l}</span><span style={{ color: B.charcoal, fontWeight: 500 }}>{v}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, fontWeight: 700, color: B.charcoal, marginTop: 14, paddingTop: 14, borderTop: `1px solid ${B.border}`, marginBottom: 20 }}>
+                    <span>Total</span><span>{fmt(cartTotal + shipping + tax)}</span>
+                  </div>
+                  <button type="submit" className="btn-dark" style={{ width: "100%", padding: "15px" }}>Place Order →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function FormCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: B.white, border: `1px solid ${B.border}`, borderRadius: 10, padding: "24px 22px", marginBottom: 18 }}>
+      <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, color: B.charcoal, marginBottom: 20 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Confirmation Page ────────────────────────────────────────────────────────
+function ConfirmationPage({ orderNum, navigate }: { orderNum: string; navigate: (p: Page) => void }) {
+  const isMobile = useWindowWidth() < 768;
+  return (
+    <div style={{ paddingTop: 68, minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="fade-up" style={{ textAlign: "center", maxWidth: 520, padding: isMobile ? "40px 24px" : "64px 40px", margin: "40px auto" }}>
+        <div style={{ width: 76, height: 76, background: B.rosePale, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 28px", fontSize: 34, color: B.rose }}>✓</div>
+        <h1 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 32 : 48, fontWeight: 400, color: B.charcoal, marginBottom: 14 }}>Thank You!</h1>
+        <p style={{ fontSize: 15, color: B.muted, lineHeight: 1.75, marginBottom: 16 }}>Your order has been placed and is being prepared with care. A handwritten note is on its way too.</p>
+        <div style={{ display: "inline-block", background: B.ivory, border: `1px solid ${B.border}`, borderRadius: 6, padding: "10px 24px", marginBottom: 28 }}>
+          <span style={{ fontSize: 11, color: B.muted }}>Order  </span>
+          <span style={{ fontFamily: SERIF, fontWeight: 600, color: B.charcoal, fontSize: 16 }}>{orderNum}</span>
+        </div>
+        <p style={{ fontSize: 12, color: B.mutedLight, marginBottom: 36 }}>A confirmation email will be sent shortly. Thank you for choosing Alethia.</p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <button className="btn-rose" onClick={() => navigate("shop")} style={{ padding: "14px 32px" }}>Continue Shopping</button>
+          <button className="btn-outline-dark" onClick={() => navigate("home")} style={{ padding: "13px 32px" }}>Back to Home</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── About Page ───────────────────────────────────────────────────────────────
+function AboutPage({ navigate }: { navigate: (p: Page) => void }) {
+  const isMobile = useWindowWidth() < 768;
+  return (
+    <div style={{ paddingTop: 68 }}>
+      {/* Hero image */}
+      <div style={{ position: "relative", height: isMobile ? 340 : 520, overflow: "hidden" }}>
+        <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1400&q=80" alt="Alethia Clothing" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 30%" }} />
+        <div style={{ position: "absolute", inset: 0, background: "rgba(26,22,18,0.35)" }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <h1 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 38 : 68, fontWeight: 400, color: B.cream, textAlign: "center", letterSpacing: "0.02em" }}>Our Story</h1>
+        </div>
+      </div>
+
+      {/* Story */}
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: isMobile ? "52px 24px" : "88px 40px", textAlign: "center" }}>
+        <div className="fade-up" style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.24em", color: B.rose, textTransform: "uppercase", marginBottom: 18 }}>Est. 2021 · Cape Town</div>
+        <h2 className="fade-up delay-1" style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 26 : 38, fontWeight: 400, color: B.charcoal, lineHeight: 1.35, marginBottom: 28 }}>
+          Alethia was born from a belief that every woman deserves to dress with intention.
+        </h2>
+        <p className="fade-up delay-2" style={{ fontSize: 15, color: B.muted, lineHeight: 1.9, marginBottom: 22 }}>
+          Founded by Amara Osei, Alethia Clothing began as a small atelier in Cape Town's Woodstock neighbourhood, where each dress was hand-finished and delivered wrapped in tissue paper with a handwritten note. The brand's name — from the Greek word for truth — reflects a commitment to authenticity: honest materials, honest craftsmanship, and designs that honour the real shapes and lives of women.
+        </p>
+        <p className="fade-up delay-3" style={{ fontSize: 15, color: B.muted, lineHeight: 1.9 }}>
+          Today, Alethia dresses are worn by women across the globe who share one thing: they refuse to choose between comfort and beauty. Each piece is designed to move with you, age gracefully, and earn a permanent place in your wardrobe.
+        </p>
+      </div>
+
+      {/* Values */}
+      <div style={{ background: B.ivory, borderTop: `1px solid ${B.border}`, borderBottom: `1px solid ${B.border}`, padding: isMobile ? "52px 24px" : "80px 40px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 52 }}>
+            <h2 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 30 : 42, fontWeight: 400, color: B.charcoal }}>What We Stand For</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? 32 : 48 }}>
+            {[
+              { icon: "🌿", title: "Sustainable Sourcing",  body: "Every fabric is chosen for its provenance. We partner with mills that meet the highest ethical and environmental standards — because what touches your skin matters." },
+              { icon: "✂️", title: "Artisan Craft",         body: "Our dresses are cut and finished by skilled artisans. No fast-fashion shortcuts. Quality that lasts a lifetime, not a season." },
+              { icon: "💌", title: "Personal Touch",        body: "Every order is packed by hand with a personal note. Because you are not a transaction — you are our community, and we are grateful for you." },
+            ].map(v => (
+              <div key={v.title} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 40, marginBottom: 16 }}>{v.icon}</div>
+                <h3 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 500, color: B.charcoal, marginBottom: 12 }}>{v.title}</h3>
+                <p style={{ fontSize: 14, color: B.muted, lineHeight: 1.8 }}>{v.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{ textAlign: "center", padding: isMobile ? "56px 24px" : "88px 40px" }}>
+        <h2 style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: isMobile ? 28 : 42, fontWeight: 400, color: B.charcoal, marginBottom: 22 }}>Ready to find your dress?</h2>
+        <button className="btn-rose" onClick={() => navigate("shop")} style={{ padding: "15px 44px" }}>Shop the Collection</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Footer ───────────────────────────────────────────────────────────────────
+function Footer({ navigate }: { navigate: (p: Page) => void }) {
+  const isMobile = useWindowWidth() < 768;
+  const [email, setEmail]       = useState("");
+  const [subscribed, setSub]    = useState(false);
+
+  return (
+    <footer style={{ background: B.charcoal, color: "rgba(253,248,243,0.65)", fontFamily: SANS }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "52px 24px 36px" : "72px 40px 44px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 2fr", gap: isMobile ? "36px 24px" : "0 56px", marginBottom: 52 }}>
+          {/* Brand column */}
+          <div style={{ gridColumn: isMobile ? "span 2" : "auto" }}>
+            <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 28, color: B.cream, marginBottom: 2 }}>Alethia</div>
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.26em", color: B.rose, textTransform: "uppercase", marginBottom: 16 }}>Clothing</div>
+            <p style={{ fontSize: 13, lineHeight: 1.8, maxWidth: 270, marginBottom: 24 }}>Boutique women's dresses, designed for the woman who lives beautifully.</p>
+            <div style={{ display: "flex", gap: 12 }}>
+              {["IG", "FB", "PT"].map(s => (
+                <div key={s} style={{ width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(253,248,243,0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, cursor: "pointer", color: "rgba(253,248,243,0.55)", transition: "border-color 0.2s" }}
+                  onMouseOver={e => (e.currentTarget.style.borderColor = "rgba(253,248,243,0.55)")}
+                  onMouseOut={e => (e.currentTarget.style.borderColor = "rgba(253,248,243,0.18)")}
+                >{s}</div>
+              ))}
+            </div>
+          </div>
+
+          {/* Shop links */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: B.cream, marginBottom: 18 }}>Shop</div>
+            {[["New Arrivals", "shop"], ["All Dresses", "shop"], ["Formal", "shop"], ["Casual", "shop"], ["Sale", "shop"]].map(([l, pg]) => (
+              <button key={l} onClick={() => navigate(pg as Page)} style={{ display: "block", background: "none", border: "none", color: "rgba(253,248,243,0.6)", fontSize: 13, marginBottom: 10, cursor: "pointer", padding: 0, textAlign: "left" }}
+                onMouseOver={e => (e.currentTarget.style.color = B.cream)}
+                onMouseOut={e => (e.currentTarget.style.color = "rgba(253,248,243,0.6)")}
+              >{l}</button>
+            ))}
+          </div>
+
+          {/* Help links */}
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: B.cream, marginBottom: 18 }}>Help</div>
+            {["About Us", "Sizing Guide", "Shipping & Returns", "Contact Us", "FAQ"].map(l => (
+              <div key={l} style={{ fontSize: 13, color: "rgba(253,248,243,0.6)", marginBottom: 10, cursor: "pointer" }}
+                onMouseOver={e => (e.currentTarget.style.color = B.cream)}
+                onMouseOut={e => (e.currentTarget.style.color = "rgba(253,248,243,0.6)")}
+              >{l}</div>
+            ))}
+          </div>
+
+          {/* Newsletter */}
+          <div style={{ gridColumn: isMobile ? "span 2" : "auto" }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: B.cream, marginBottom: 14 }}>Stay in the Loop</div>
+            <p style={{ fontSize: 13, lineHeight: 1.75, marginBottom: 18 }}>New arrivals, styling notes, and exclusive offers — delivered gently to your inbox.</p>
+            {subscribed ? (
+              <div style={{ fontSize: 13, color: B.gold }}>✓  Thank you for subscribing!</div>
+            ) : (
+              <div style={{ display: "flex" }}>
+                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com"
+                  style={{ flex: 1, padding: "11px 14px", background: "rgba(253,248,243,0.07)", border: "1px solid rgba(253,248,243,0.16)", borderRight: "none", borderRadius: "3px 0 0 3px", color: B.cream, fontSize: 13, outline: "none" }} />
+                <button onClick={() => { if (email) setSub(true); }}
+                  style={{ padding: "11px 16px", background: B.rose, color: B.white, border: "none", borderRadius: "0 3px 3px 0", fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" }}>
+                  Join
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div style={{ borderTop: "1px solid rgba(253,248,243,0.08)", paddingTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ fontSize: 11, color: "rgba(253,248,243,0.3)" }}>© 2026 Alethia Clothing. All rights reserved.</div>
+          <div style={{ display: "flex", gap: 20 }}>
+            {["Privacy Policy", "Terms", "Cookies"].map(l => (
+              <span key={l} style={{ fontSize: 11, color: "rgba(253,248,243,0.3)", cursor: "pointer" }}>{l}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
 }
