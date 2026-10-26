@@ -200,8 +200,11 @@ function vSetPassword() {
     e.preventDefault(); const a = $("#p1").value, b = $("#p2").value;
     if (a.length < 10) return $("#perr").textContent = "Use at least 10 characters.";
     if (a !== b) return $("#perr").textContent = "The two passwords don't match.";
-    const { error } = await sb.auth.updateUser({ password: a }); if (error) return $("#perr").textContent = error.message;
-    await sb.rpc("password_changed"); S.member.must_reset = false; toast("Password saved"); boot();
+    const btn = e.submitter || $("#setpw button"); btn.disabled = true; btn.textContent = "Saving…";
+    const { error } = await sb.auth.updateUser({ password: a });
+    if (error && !/different from the old password|same_password/i.test(error.message + (error.code || ""))) { btn.disabled = false; btn.textContent = "Save and continue"; return $("#perr").textContent = /weak|short|characters/i.test(error.message) ? "Choose a longer password, with letters and numbers." : error.message; }
+    const r = await sb.rpc("password_changed"); if (r.error) { btn.disabled = false; btn.textContent = "Save and continue"; return $("#perr").textContent = "Your password is saved, but the Hub could not finish setting up. Please tell Anna."; }
+    S.member.must_reset = false; toast("Password saved"); boot();
   };
 }
 async function boot() {
