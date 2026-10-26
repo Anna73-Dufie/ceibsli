@@ -27,7 +27,7 @@ document.addEventListener("click", async e => {
   if (S.search && !e.target.closest(".search")) { S.search = ""; if (!e.target.closest("[data-session],[data-teamof]")) { render(); return; } }
   if (S.menu && !e.target.closest(".me")) { S.menu = false; render(); }
   if (e.target.closest("#signout,#signout2")) { await sb.auth.signOut(); return; }
-  const t = e.target.closest("[data-nav],[data-menu],[data-view],[data-session],[data-teamof],[data-close],[data-viewsheet],[data-edit],[data-new],[data-delsession],[data-month],[data-fam],[data-calview],[data-pgm],[data-mod],[data-worktab],[data-addnote],[data-teamwin],[data-wf],[data-editstep],[data-savestep],[data-brief],[data-tpl],[data-copyid],[data-import],[data-doimport],[data-addstu],[data-ptab],[data-createacc],[data-resetacc]");
+  const t = e.target.closest("[data-nav],[data-menu],[data-view],[data-session],[data-teamof],[data-close],[data-viewsheet],[data-edit],[data-new],[data-delsession],[data-month],[data-fam],[data-calview],[data-pgm],[data-mod],[data-worktab],[data-addnote],[data-teamwin],[data-wf],[data-editstep],[data-savestep],[data-brief],[data-tpl],[data-copyid],[data-import],[data-doimport],[data-addstu],[data-ptab],[data-createacc],[data-resetacc],[data-pform],[data-suggest],[data-rmperson]");
   if (!t) return; const d = t.dataset;
   if (d.nav !== undefined) { S.nav = d.nav === "1" ? !S.nav : false; render(); return; }
   if (d.menu) { S.menu = !S.menu; render(); return; }
@@ -67,6 +67,9 @@ document.addEventListener("click", async e => {
   }
   if (d.addstu !== undefined) { S.open.addstu = d.addstu === "1"; render(); return; }
   if (d.ptab) { S.ptab = d.ptab; S.q = ""; render(); return; }
+  if (d.pform !== undefined) { S.pform = d.pform === "0" ? null : d.pform; render(); return; }
+  if (d.suggest) { const x = SUGGEST[Number(d.suggest)]; $("#pf-name").value = x.name; $("#pf-short").value = x.short; $("#pf-title").value = x.title; $("#pf-email").value = x.email; $("#pf-does").value = x.does; $("#pf-fees").checked = x.fees; $("#pf-access").value = "member"; $("#pf-name").focus(); return; }
+  if (d.rmperson) { if (t.dataset.armed !== "1") { t.dataset.armed = "1"; t.textContent = "Tap again to remove"; return; } const { data, error } = await sb.rpc("hub_remove_person", { p_key: d.rmperson }); if (error) return toast(error.message); if (data !== "removed") { $("#pferr").textContent = data; return; } S.people = S.people.filter(x => x.key !== d.rmperson); S.pform = null; render(); toast("Removed"); return; }
   if (d.createacc || d.resetacc) {
     const p = P(d.createacc || d.resetacc), pw = tempPw(), box = $("#adminmsg");
     if (d.createacc) { const { error } = await sb.rpc("admin_add_member", { p_email: p.email, p_name: p.name, p_role: ROLE_FOR[p.key] || "COORD", p_password: pw, p_admin: false }); if (error) return toast(error.message); }
@@ -96,6 +99,18 @@ document.addEventListener("submit", async e => {
   const f = e.target;
   if (f.id === "sform") return saveSession(e);
   if (f.id === "pwform") { e.preventDefault(); const p = $("#np").value; if (p.length < 10) return $("#pwerr").textContent = "Use at least 10 characters."; const { error } = await sb.auth.updateUser({ password: p }); if (error) return $("#pwerr").textContent = error.message; $("#np").value = ""; $("#pwerr").textContent = ""; toast("Password changed"); return; }
+  if (f.id === "pform") {
+    e.preventDefault(); const key = f.dataset.key, email = $("#pf-email").value.trim().toLowerCase();
+    const row = { name: $("#pf-name").value.trim(), short: $("#pf-short").value.trim(), title: $("#pf-title").value.trim(), does: $("#pf-does").value.trim(), fees: $("#pf-fees").checked };
+    if (!key) row.access = $("#pf-access").value; else if (P(key).access !== "admin") row.access = $("#pf-access").value;
+    if (!row.name || !row.short || !row.title || !email) return $("#pferr").textContent = "Name, position and email are needed.";
+    if (key) { const { data, error } = await sb.from("hub_people").update(row).eq("key", key).select().single(); if (error) return $("#pferr").textContent = error.message; Object.assign(P(key), data); S.pform = null; render(); toast("Saved"); return; }
+    if (S.people.some(x => x.email.toLowerCase() === email)) return $("#pferr").textContent = "That email is already on the team.";
+    let k = row.short.toLowerCase().replace(/[^a-z]/g, "") || "person"; while (S.people.some(x => x.key === k)) k += "2";
+    Object.assign(row, { key: k, email, colour: PALETTE[S.people.length % PALETTE.length], sort: Math.max(0, ...S.people.map(x => x.sort || 0)) + 1 });
+    const { data, error } = await sb.from("hub_people").insert(row).select().single(); if (error) return $("#pferr").textContent = error.message;
+    S.people.push(data); S.pform = null; render(); toast(`${data.short} added. Now create their account.`); return;
+  }
   if (f.id === "stuform") { e.preventDefault(); const row = { name: $("#sn").value.trim(), programme: $("#sp").value.trim(), email: $("#se").value.trim(), phone: $("#sph").value.trim(), fee: Number($("#sf").value) || 0, paid: Number($("#spd").value) || 0, due_date: $("#sd").value || null }; const { data, error } = await sb.from("hub_students").insert(row).select().single(); if (error) return $("#sterr").textContent = error.message; S.students.push(data); S.open.addstu = false; render(); toast("Student added"); return; }
   if (f.id === "vform") { e.preventDefault(); const row = { name: $("#vn").value.trim(), service: $("#vs").value, contact: $("#vc").value.trim(), phone: $("#vp").value.trim(), email: $("#ve").value.trim() }; const { data, error } = await sb.from("hub_vendors").insert(row).select().single(); if (error) return toast(error.message); S.vendors.push(data); render(); toast("Vendor added"); return; }
 });

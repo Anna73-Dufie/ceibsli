@@ -41,7 +41,7 @@ const P = k => S.people.find(p => p.key === k) || { key: k, short: k || "?", nam
 const isSup = () => S.me && ["admin", "supervisor"].includes(P(S.me).access);
 const isAdmin = () => S.me && P(S.me).access === "admin";
 const canPlan = () => isSup() || S.me === "daniel";
-const canFees = () => ["anna", "nicholas", "gordon"].includes(S.me);
+const canFees = () => !!(S.me && P(S.me).fees);
 const canEditTask = t => t.owner === S.me || t.approver === S.me || canPlan();
 const initials = n => (String(n || "?").replace(/^(Prof\.?|Dr\.?)\s+/i, "").trim()[0] || "?").toUpperCase();
 function av(key, size = "") { const p = P(key); return `<span class="av ${size}" style="--c:${p.colour}" title="${esc(p.name)}">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(initials(p.name))}</span>`; }
@@ -86,14 +86,13 @@ async function loadAll() {
     sb.from("hub_workflows").select("*").order("sort"),
     sb.from("hub_vendors").select("*").order("service"),
     sb.from("hub_faculty").select("*").order("name"),
-    canFeesFor(S.me) ? sb.from("hub_students").select("*").order("name") : Promise.resolve({ data: [] })
+    sb.from("hub_students").select("*").order("name")
   ];
   const [pe, se, ta, st, wf, ve, fa, stu] = await Promise.all(q);
   const err = [pe, se, ta, st, wf].find(r => r.error); if (err) throw err.error;
   S.people = pe.data; S.sessions = se.data; S.tasks = ta.data; S.steps = st.data; S.workflows = wf.data; S.vendors = ve.data || []; S.faculty = fa.data || []; S.students = stu.data || [];
   SID = Object.fromEntries(S.sessions.map(s => [s.id, s]));
 }
-const canFeesFor = k => ["anna", "nicholas", "gordon"].includes(k);
 let rT; const soon = () => { clearTimeout(rT); rT = setTimeout(() => { SID = Object.fromEntries(S.sessions.map(s => [s.id, s])); render(); if (S.drawer) renderDrawer(); }, 200); };
 function upsert(arr, p, key = "id") { const id = (p.new && p.new[key]) || (p.old && p.old[key]); const i = arr.findIndex(x => x[key] === id); if (p.eventType === "DELETE") { if (i >= 0) arr.splice(i, 1); } else if (i >= 0) arr[i] = p.new; else arr.push(p.new); }
 function subscribe() {

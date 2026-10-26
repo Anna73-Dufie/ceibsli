@@ -59,7 +59,7 @@ function vFees() {
   const progs = [...new Set(S.students.map(x => x.programme).filter(Boolean))].sort();
   const L = S.students.filter(x => S.stuProg === "all" || x.programme === S.stuProg).filter(x => !S.q || (x.name + " " + x.email + " " + x.phone).toLowerCase().includes(S.q.toLowerCase()));
   const tot = L.reduce((a, x) => a + Number(x.fee || 0), 0), paid = L.reduce((a, x) => a + Number(x.paid || 0), 0), owing = L.filter(x => bal(x) > 0);
-  const isN = S.me === "nicholas", isA = S.me === "anna", edit = isN || isA;
+  const isA = S.me === "anna", isN = canFees() && !isA && P(S.me).access === "member", edit = isN || isA;
   return `<div class="head"><div><h1>Students & fees</h1><p>${isN ? "Update what each student has paid. Anna sees the balances and sends the reminders." : isA ? "Nicholas keeps the payments current. Remind anyone with a balance in one click." : "Fee position across programmes."}</p></div>
    ${edit ? `<div style="display:flex;gap:8px"><button class="btn" data-import="1">Import list</button><button class="btn red" data-addstu="1">Add student</button></div>` : ""}</div>
   <div class="tiles" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div class="tile blue"><div><b>${L.length}</b><span>students</span></div></div><div class="tile green"><div><b style="font-size:24px">${money(paid)}</b><span>paid</span></div></div><div class="tile amber"><div><b style="font-size:24px">${money(tot - paid)}</b><span>outstanding</span></div></div><div class="tile red"><div><b>${owing.length}</b><span>with a balance</span></div></div></div>
@@ -100,16 +100,39 @@ function vPeople() {
 
 /* ---------- Admin (Anna only) ---------- */
 const ROLE_FOR = { anna: "COORD", daniel: "COORD", celestine: "LOG", nicholas: "FIN", gordon: "ED" };
+const SUGGEST = [
+  { name: "Mavis Akrofi", short: "Mavis", title: "Finance and Administration Manager", email: "amavis@ceibs.edu", does: "Finance and administration; verifies student payments with Nicholas", fees: true },
+  { name: "Prince Dela Fiador", short: "Dela", title: "Marketing and Digital Media Executive", email: "fprince@ceibs.edu", does: "Programme marketing, social media and digital campaigns", fees: false },
+  { name: "Sylvia Sam Sinkari", short: "Sylvia", title: "Business Development Consultant", email: "ssylvia@ceibs.edu", does: "Business development and prospective participant enquiries", fees: false },
+  { name: "Rebecca Etriakor", short: "Rebecca", title: "Executive Assistant", email: "erebecca@ceibs.edu", does: "Executive support to the Executive Director", fees: false }
+];
+const PALETTE = ["#B45309", "#DB2777", "#0891B2", "#4D7C0F", "#9333EA", "#C2410C", "#0E7490", "#BE123C"];
+function personForm(p) {
+  const v = k => esc(p[k] ?? ""), isNew = !p.key, left = SUGGEST.filter(x => !S.people.some(y => y.email.toLowerCase() === x.email));
+  return `<div class="scrim" data-pform="0"></div><aside class="drawer" style="width:min(560px,100%)" role="dialog" aria-modal="true" aria-labelledby="pft"><div class="dh"><h2 id="pft">${isNew ? "Add a team member" : "Edit " + esc(p.short)}</h2><button class="x" data-pform="0" aria-label="Close">×</button></div><div class="db">
+   ${isNew && left.length ? `<div class="label">Quick add</div><div class="tlist" style="margin-bottom:18px">${left.map((x, i) => `<button class="titem" type="button" data-suggest="${SUGGEST.indexOf(x)}"><span class="av" style="--c:${PALETTE[i]}">${esc(x.short[0])}</span><span><b>${esc(x.name)}</b><span>${esc(x.title)} · ${esc(x.email)}</span></span></button>`).join("")}</div><div class="label">Or someone else</div>` : ""}
+   <form id="pform" class="form2" data-key="${v("key")}">
+    <div class="field"><label for="pf-name">Full name</label><input class="input" id="pf-name" value="${v("name")}" required></div>
+    <div class="field"><label for="pf-short">Name shown in the Hub</label><input class="input" id="pf-short" value="${v("short")}" placeholder="e.g. Mavis" required></div>
+    <div class="field full"><label for="pf-title">Position</label><input class="input" id="pf-title" value="${v("title")}" required></div>
+    <div class="field full"><label for="pf-email">CEIBS email</label><input class="input" id="pf-email" type="email" value="${v("email")}" required ${isNew ? "" : "readonly"}></div>
+    <div class="field full"><label for="pf-does">What they do in the programmes</label><input class="input" id="pf-does" value="${v("does")}"></div>
+    <div class="field"><label for="pf-access">Access</label><select class="select" id="pf-access" ${p.access === "admin" ? "disabled" : ""}>${p.access === "admin" ? '<option value="admin">Admin</option>' : ""}<option value="member" ${p.access === "member" ? "selected" : ""}>Team member · sees their own work</option><option value="supervisor" ${p.access === "supervisor" ? "selected" : ""}>Supervisor · sees and edits everything</option></select></div>
+    <label class="field" style="flex-direction:row;align-items:center;gap:10px;margin-top:26px"><input type="checkbox" id="pf-fees" ${p.fees ? "checked" : ""}> Can see Students & fees</label>
+    <div class="err full" id="pferr"></div>
+    <div class="full" style="display:flex;justify-content:space-between;gap:8px">${!isNew && p.access !== "admin" ? `<button class="btn" type="button" data-rmperson="${v("key")}">Remove from the Hub</button>` : "<span></span>"}<button class="btn red" type="submit">${isNew ? "Add to the team" : "Save"}</button></div>
+   </form><p class="muted" style="font-size:12.5px;margin-top:14px">${isNew ? "New people start with no tasks. Give them steps in Workflows (Edit, then pick their name) and every session updates. Then create their account so they can sign in." : "To give someone work, open Workflows and change the owner of a step."}</p></div></aside>`;
+}
 function tempPw() { const a = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"; let s = "Hub-"; for (const x of crypto.getRandomValues(new Uint32Array(10))) s += a[x % a.length]; return s; }
 function vAdmin() {
   if (!isAdmin()) return vOverview();
   const acc = k => S.accounts.find(a => a.key === k) || {};
-  return `<div class="head"><div><h1>Admin</h1><p>Only you can see this page. Create accounts, reset passwords and add photos.</p></div></div>
+  return `<div class="head"><div><h1>Admin</h1><p>Only you can see this page. Add team members, create accounts, reset passwords and add photos.</p></div><button class="btn red" data-pform="new">Add a team member</button></div>
   <section class="card" style="padding:8px 12px"><div class="tw"><table class="stack-sm"><thead><tr><th>Person</th><th>Email</th><th>Access</th><th>Account</th><th></th></tr></thead><tbody>${S.people.map(p => { const a = acc(p.key); return `<tr><td><div class="who">${av(p.key)}<span><b>${esc(p.name)}</b><div class="muted" style="font-size:12.5px">${esc(p.title)}</div></span></div></td><td>${esc(p.email)}</td>
     <td>${{ admin: "Admin", supervisor: "Supervisor", member: "Team member" }[p.access]}</td>
     <td>${!a.member_id ? '<span class="pill grey">No account</span>' : a.signed_in ? (a.must_reset ? '<span class="pill amber">Must set password</span>' : '<span class="pill green">Active</span>') : '<span class="pill blue">Invited</span>'}</td>
-    <td style="white-space:nowrap"><label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-photo="${p.key}" hidden></label> ${!a.member_id ? `<button class="btn sm red" data-createacc="${p.key}">Create account</button>` : p.key !== S.me ? `<button class="btn sm" data-resetacc="${p.key}">Reset password</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>
-  <div id="adminmsg" class="callout blue" style="margin-top:16px" hidden></div>`;
+    <td style="white-space:nowrap"><button class="btn sm" data-pform="${p.key}">Edit</button> <label class="btn sm" style="cursor:pointer">Photo<input type="file" accept="image/*" data-photo="${p.key}" hidden></label> ${!a.member_id ? `<button class="btn sm red" data-createacc="${p.key}">Create account</button>` : p.key !== S.me ? `<button class="btn sm" data-resetacc="${p.key}">Reset password</button>` : ""}</td></tr>`; }).join("")}</tbody></table></div></section>
+  <div id="adminmsg" class="callout blue" style="margin-top:16px" hidden></div>${S.pform ? personForm(S.pform === "new" ? { access: "member", fees: false } : P(S.pform)) : ""}`;
 }
 
 /* ---------- My account ---------- */
