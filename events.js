@@ -39,7 +39,7 @@ document.addEventListener("click", async e => {
   if (d.viewsheet) { S.drawerMode = "view"; renderDrawer(); return; }
   if (d.edit) { openDrawer(d.edit, "edit"); return; }
   if (d.new) { openDrawer("new"); return; }
-  if (d.delsession) { if (t.dataset.armed !== "1") { t.dataset.armed = "1"; t.textContent = "Tap again to delete"; return; } const { error } = await sb.from("hub_sessions").delete().eq("id", d.delsession); if (error) return toast(error.message); S.sessions = S.sessions.filter(x => x.id !== d.delsession); S.tasks = S.tasks.filter(x => x.session_id !== d.delsession); delete SID[d.delsession]; closeDrawer(); render(); toast("Session deleted"); return; }
+  if (d.delsession) { if (t.dataset.armed !== "1") { t.dataset.armed = "1"; t.textContent = `Tap again to delete it and its ${tasksOf(d.delsession).length} tasks`; t.classList.add("red"); t.style.color = "#fff"; return; } const { error } = await sb.from("hub_sessions").delete().eq("id", d.delsession); if (error) return toast(error.message); S.sessions = S.sessions.filter(x => x.id !== d.delsession); S.tasks = S.tasks.filter(x => x.session_id !== d.delsession); delete SID[d.delsession]; closeDrawer(); render(); toast("Session deleted"); return; }
   if (d.month) { S.month = Number(d.month); render(); return; }
   if (d.fam) { S.fam = d.fam; render(); return; }
   if (d.calview) { S.calView = d.calview; render(); return; }
@@ -69,7 +69,9 @@ document.addEventListener("click", async e => {
   if (d.ptab) { S.ptab = d.ptab; S.q = ""; render(); return; }
   if (d.pform !== undefined) { S.pform = d.pform === "0" ? null : d.pform; render(); return; }
   if (d.suggest) { const x = SUGGEST[Number(d.suggest)]; $("#pf-name").value = x.name; $("#pf-short").value = x.short; $("#pf-title").value = x.title; $("#pf-email").value = x.email; $("#pf-does").value = x.does; $("#pf-fees").checked = x.fees; $("#pf-access").value = "member"; $("#pf-name").focus(); return; }
-  if (d.rmperson) { if (t.dataset.armed !== "1") { t.dataset.armed = "1"; t.textContent = "Tap again to remove"; return; } const { data, error } = await sb.rpc("hub_remove_person", { p_key: d.rmperson }); if (error) return toast(error.message); if (data !== "removed") { $("#pferr").textContent = data; return; } S.people = S.people.filter(x => x.key !== d.rmperson); S.pform = null; render(); toast("Removed"); return; }
+  if (d.rmperson) { if (t.dataset.armed !== "1") { t.dataset.armed = "1"; t.textContent = "Tap again to remove"; return; } const to = $("#pf-to") ? $("#pf-to").value : null, who = P(d.rmperson).short; const { data, error } = await sb.rpc("hub_remove_person", { p_key: d.rmperson, p_to: to }); if (error) return toast(error.message); if (data !== "removed") { $("#pferr").textContent = data; return; }
+    if (to) { for (const x of S.tasks) { if (x.owner === d.rmperson) x.owner = to; if (x.approver === d.rmperson) x.approver = to; } for (const x of S.steps) { if (x.owner === d.rmperson) x.owner = to; if (x.approver === d.rmperson) x.approver = to; } }
+    S.people = S.people.filter(x => x.key !== d.rmperson); S.accounts = S.accounts.filter(x => x.key !== d.rmperson); S.pform = null; render(); toast(to ? `${who} removed. Their work is now with ${P(to).short}.` : `${who} removed`); return; }
   if (d.createacc || d.resetacc) {
     const p = P(d.createacc || d.resetacc), pw = tempPw(), box = $("#adminmsg");
     if (d.createacc) { const { error } = await sb.rpc("admin_add_member", { p_email: p.email, p_name: p.name, p_role: ROLE_FOR[p.key] || "COORD", p_password: pw, p_admin: false }); if (error) return toast(error.message); }
