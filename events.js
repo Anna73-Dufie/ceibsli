@@ -3,11 +3,11 @@
 function after() { }
 async function uploadPhoto(key, file) {
   if (!file) return;
-  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  let img; try { img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); }); } catch (_) { return toast("That file isn't a photo the browser can read. Try a JPG or PNG."); }
   const n = 320, c = document.createElement("canvas"); c.width = c.height = n; const s = Math.min(img.width, img.height);
   c.getContext("2d").drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, n, n);
   const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.85)), path = `${key}/${Date.now()}.jpg`;
-  const up = await sb.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg", upsert: true }); if (up.error) return toast(up.error.message);
+  toast("Uploading photo…"); const up = await sb.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg", upsert: false }); if (up.error) return toast("Photo not saved: " + up.error.message);
   const url = sb.storage.from("avatars").getPublicUrl(path).data.publicUrl;
   const { error } = await sb.rpc("hub_set_photo", { p_key: key, p_url: url }); if (error) return toast(error.message);
   P(key).photo_url = url; toast("Photo saved"); render();
