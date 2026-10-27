@@ -2,6 +2,8 @@
 "use strict";
 const SB_URL = "https://skuijlscyqtbqresyhbx.supabase.co";
 const SB_KEY = "sb_publishable_lkFD6vqwlhat83gt0k1tPQ_Rkk6-1I0";
+const RECOVERY_LINK = /type=recovery/.test(location.hash + location.search);
+const LINK_ERROR = (() => { const m = /error_description=([^&]+)/.exec(location.hash); return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : ""; })();
 const sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
 
 /* ---------- utilities ---------- */
@@ -32,7 +34,7 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 
 /* ---------- state ---------- */
 const S = {
-  member: null, me: null, people: [], sessions: [], tasks: [], steps: [], workflows: [], students: [], vendors: [], faculty: [], accounts: [],
+  recovery: RECOVERY_LINK, resets: [], member: null, me: null, people: [], sessions: [], tasks: [], steps: [], workflows: [], students: [], vendors: [], faculty: [], accounts: [],
   view: "overview", month: null, fam: "all", calView: "list", pgm: null, mod: null, wf: "classroom", tpl: null, tplSel: {}, team: "30",
   workTab: "week", briefFor: null, ptab: "team", q: "", search: "", nav: false, menu: false, drawer: null, drawerMode: "view", open: {}, stuProg: "all"
 };
@@ -146,7 +148,7 @@ function NAV() {
 function shell(inner) {
   const me = P(S.me), late = myTasks().filter(isLate).length, dueWeek = myTasks().filter(t => isOpen(t) && t.due >= TODAY && diff(t.due, TODAY) <= 7).length;
   return `<div class="app"><aside class="side ${S.nav ? "open" : ""}"><div class="brand"><span class="emblem"><img src="emblem-white.png" alt=""></span><div><b>CEIBS</b><span>Africa Programme Hub</span></div></div>
-   <nav aria-label="Sections">${NAV().map(([k, l]) => `<button data-view="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ic(k)}${l}${k === "work" && (late || dueWeek) ? `<span class="n">${late || dueWeek}</span>` : ""}</button>`).join("")}</nav>
+   <nav aria-label="Sections">${NAV().map(([k, l]) => `<button data-view="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ic(k)}${l}${k === "work" && (late || dueWeek) ? `<span class="n">${late || dueWeek}</span>` : ""}${k === "admin" && S.resets.length ? `<span class="n" style="background:var(--red)">${S.resets.length}</span>` : ""}</button>`).join("")}</nav>
    <div class="foot">2027 · Programme Office</div></aside>
    <div class="main"><header class="top"><button class="menu" data-nav="1" aria-label="Menu">☰</button>
     <div class="search">${ic("search")}<label class="sr" for="gs">Search</label><input id="gs" placeholder="Search programmes, tasks, people…" value="${esc(S.search)}" autocomplete="off">${S.search.length > 1 ? searchResults() : ""}</div>
@@ -181,18 +183,40 @@ function vSignIn(err = "") {
     <div class="field"><label for="em">Email</label><input class="input" id="em" type="email" autocomplete="email" placeholder="name@ceibs.edu"></div>
     <div class="field"><label for="pw">Password</label><input class="input" id="pw" type="password" autocomplete="current-password"></div>
     <div class="err" id="lerr">${esc(err)}</div><button class="btn red block" id="lbtn" type="submit">Sign in</button>
-    <p class="fine">No account yet, or forgotten your password? Ask Anna.</p></form></section></div>`;
+    <p class="fine"><button type="button" class="more" id="forgot" style="font-size:13px">Forgot your password?</button></p><p class="fine" style="margin-top:6px">No account yet? Ask Anna or Prof. Gordon.</p></form></section></div>`;
   $("#login").onsubmit = async e => {
     e.preventDefault(); const b = $("#lbtn"); b.disabled = true; b.textContent = "Signing in…";
     const { error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value });
     if (error) { b.disabled = false; b.textContent = "Sign in"; $("#lerr").textContent = /invalid/i.test(error.message) ? "That email and password don't match." : error.message; return; }
     boot();
   };
+  $("#forgot").onclick = () => vForgot($("#em").value.trim());
+}
+function vForgot(email = "", sent = false) {
+  $("#app").innerHTML = `<div class="signin">${signinArt("Forgotten your password?", "It happens. We'll get you back in.")}
+   <section class="signin-form"><form id="forgotf" novalidate><div class="brandline"><span class="emblem sm"><img src="emblem-white.png" alt=""></span><div><b>CEIBS Africa</b><span>Programme Hub</span></div></div>
+    ${sent ? `<h2>Check your email</h2><p class="lead">If <b>${esc(email)}</b> is on the team, a link to choose a new password is on its way. It can take a few minutes; check your junk folder too.</p>
+    <div class="callout blue">Anna and Prof. Gordon have also been told, so they can reset it for you if the email doesn't arrive.</div><button class="btn block" type="button" id="back">Back to sign in</button>`
+    : `<h2>Reset your password</h2><p class="lead">Enter your CEIBS email and we'll send you a link to choose a new password.</p>
+    <div class="field"><label for="fe">Email</label><input class="input" id="fe" type="email" autocomplete="email" value="${esc(email)}" placeholder="name@ceibs.edu"></div>
+    <div class="err" id="ferr"></div><button class="btn red block" type="submit" id="fbtn">Send reset link</button><p class="fine"><button type="button" class="more" id="back" style="font-size:13px">Back to sign in</button></p>`}</form></section></div>`;
+  $("#back").onclick = () => vSignIn();
+  if (sent) return;
+  $("#forgotf").onsubmit = async e => {
+    e.preventDefault(); const em = $("#fe").value.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(em)) return $("#ferr").textContent = "Enter your email address.";
+    const b = $("#fbtn"); b.disabled = true; b.textContent = "Sending…";
+    await sb.rpc("hub_request_reset", { p_email: em });
+    const { error } = await sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + "/" });
+    if (error && /rate|seconds|too many/i.test(error.message)) { b.disabled = false; b.textContent = "Send reset link"; return $("#ferr").textContent = "A link was sent very recently. Please wait a few minutes, or ask Anna to reset it."; }
+    vForgot(em, true);
+  };
 }
 function vSetPassword() {
-  $("#app").innerHTML = `<div class="signin">${signinArt(`Welcome, ${esc(P(S.me).short)}.`, "Choose your own password to finish setting up.")}
+  const rec = S.recovery;
+  $("#app").innerHTML = `<div class="signin">${signinArt(rec ? `Welcome back, ${esc(P(S.me).short)}.` : `Welcome, ${esc(P(S.me).short)}.`, rec ? "Choose a new password and you're back in." : "Choose your own password to finish setting up.")}
    <section class="signin-form"><form id="setpw" novalidate><div class="brandline"><span class="emblem sm"><img src="emblem-white.png" alt=""></span><div><b>CEIBS Africa</b><span>Programme Hub</span></div></div>
-    <h2>Choose a password</h2><p class="lead">At least 10 characters.</p>
+    <h2>${rec ? "Choose a new password" : "Choose a password"}</h2><p class="lead">At least 10 characters.</p>
     <div class="field"><label for="p1">New password</label><input class="input" id="p1" type="password" autocomplete="new-password"></div>
     <div class="field"><label for="p2">Repeat it</label><input class="input" id="p2" type="password" autocomplete="new-password"></div>
     <div class="err" id="perr"></div><button class="btn red block" type="submit">Save and continue</button></form></section></div>`;
@@ -204,22 +228,22 @@ function vSetPassword() {
     const { error } = await sb.auth.updateUser({ password: a });
     if (error && !/different from the old password|same_password/i.test(error.message + (error.code || ""))) { btn.disabled = false; btn.textContent = "Save and continue"; return $("#perr").textContent = /weak|short|characters/i.test(error.message) ? "Choose a longer password, with letters and numbers." : error.message; }
     const r = await sb.rpc("password_changed"); if (r.error) { btn.disabled = false; btn.textContent = "Save and continue"; return $("#perr").textContent = "Your password is saved, but the Hub could not finish setting up. Please tell Anna."; }
-    S.member.must_reset = false; toast("Password saved"); boot();
+    S.member.must_reset = false; S.recovery = false; try { history.replaceState(null, "", location.pathname); } catch (_) { } toast("Password saved"); boot();
   };
 }
 async function boot() {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) return vSignIn();
+  if (!session) return vSignIn(LINK_ERROR && /expired|invalid/i.test(LINK_ERROR) ? "That reset link has expired. Use 'Forgot your password?' to get a new one." : "");
   const { data: m } = await sb.from("members").select("id,email,full_name,role,is_admin,must_reset").eq("id", session.user.id).maybeSingle();
   const { data: key } = await sb.rpc("hub_me");
   if (!m || !key) { await sb.auth.signOut(); return vSignIn("This account isn't set up for the Hub. Ask Anna."); }
   S.member = m; S.me = key;
   const tok = await sb.rpc("my_calendar_token"); S.member.cal_token = tok.data || "";
   try { await loadAll(); } catch (e) { $("#app").innerHTML = `<div class="page"><p class="empty">The Hub could not load: ${esc(e.message)}. Refresh to try again.</p></div>`; return; }
-  if (m.must_reset) return vSetPassword();
+  if (m.must_reset || S.recovery) return vSetPassword();
   const h = (location.hash || "").slice(1); if (NAV().some(n => n[0] === h) || h === "account") S.view = h;
   if (!S.month) { const n = nextSession()[0]; S.month = n ? Number(n.start_date.slice(5, 7)) : 1; if (TODAY.slice(0, 4) === "2027") S.month = Number(TODAY.slice(5, 7)); }
-  if (isAdmin()) { const { data } = await sb.rpc("hub_accounts"); S.accounts = data || []; }
+  if (isAdmin()) { const [{ data }, rr] = await Promise.all([sb.rpc("hub_accounts"), sb.from("hub_reset_requests").select("*").is("resolved_at", null).order("created_at", { ascending: false })]); S.accounts = data || []; S.resets = rr.data || []; }
   render(); subscribe();
 }
-sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") { S.me = null; vSignIn(); } });
+sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") { S.me = null; vSignIn(); } if (ev === "PASSWORD_RECOVERY") { S.recovery = true; if (S.me) vSetPassword(); } });

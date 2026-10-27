@@ -27,7 +27,7 @@ document.addEventListener("click", async e => {
   if (S.search && !e.target.closest(".search")) { S.search = ""; if (!e.target.closest("[data-session],[data-teamof]")) { render(); return; } }
   if (S.menu && !e.target.closest(".me")) { S.menu = false; render(); }
   if (e.target.closest("#signout,#signout2")) { await sb.auth.signOut(); return; }
-  const t = e.target.closest("[data-nav],[data-menu],[data-view],[data-session],[data-teamof],[data-close],[data-viewsheet],[data-edit],[data-new],[data-delsession],[data-month],[data-fam],[data-calview],[data-pgm],[data-mod],[data-worktab],[data-addnote],[data-teamwin],[data-wf],[data-editstep],[data-savestep],[data-brief],[data-tpl],[data-copyid],[data-import],[data-doimport],[data-addstu],[data-ptab],[data-createacc],[data-resetacc],[data-pform],[data-suggest],[data-rmperson]");
+  const t = e.target.closest("[data-nav],[data-menu],[data-view],[data-session],[data-teamof],[data-close],[data-viewsheet],[data-edit],[data-new],[data-delsession],[data-month],[data-fam],[data-calview],[data-pgm],[data-mod],[data-worktab],[data-addnote],[data-teamwin],[data-wf],[data-editstep],[data-savestep],[data-brief],[data-tpl],[data-copyid],[data-import],[data-doimport],[data-addstu],[data-ptab],[data-createacc],[data-resetacc],[data-pform],[data-suggest],[data-rmperson],[data-resolve]");
   if (!t) return; const d = t.dataset;
   if (d.nav !== undefined) { S.nav = d.nav === "1" ? !S.nav : false; render(); return; }
   if (d.menu) { S.menu = !S.menu; render(); return; }
@@ -72,11 +72,14 @@ document.addEventListener("click", async e => {
   if (d.rmperson) { if (t.dataset.armed !== "1") { t.dataset.armed = "1"; t.textContent = "Tap again to remove"; return; } const to = $("#pf-to") ? $("#pf-to").value : null, who = P(d.rmperson).short; const { data, error } = await sb.rpc("hub_remove_person", { p_key: d.rmperson, p_to: to }); if (error) return toast(error.message); if (data !== "removed") { $("#pferr").textContent = data; return; }
     if (to) { for (const x of S.tasks) { if (x.owner === d.rmperson) x.owner = to; if (x.approver === d.rmperson) x.approver = to; } for (const x of S.steps) { if (x.owner === d.rmperson) x.owner = to; if (x.approver === d.rmperson) x.approver = to; } }
     S.people = S.people.filter(x => x.key !== d.rmperson); S.accounts = S.accounts.filter(x => x.key !== d.rmperson); S.pform = null; render(); toast(to ? `${who} removed. Their work is now with ${P(to).short}.` : `${who} removed`); return; }
+  if (d.resolve) { await sb.from("hub_reset_requests").update({ resolved_at: new Date().toISOString(), resolved_by: S.me }).eq("id", Number(d.resolve)); S.resets = S.resets.filter(r => r.id !== Number(d.resolve)); render(); return; }
   if (d.createacc || d.resetacc) {
     const p = P(d.createacc || d.resetacc), pw = tempPw(), box = $("#adminmsg");
     if (d.createacc) { const { error } = await sb.rpc("admin_add_member", { p_email: p.email, p_name: p.name, p_role: ROLE_FOR[p.key] || "COORD", p_password: pw, p_admin: false }); if (error) return toast(error.message); }
     else { const a = S.accounts.find(x => x.key === p.key); const { error } = await sb.rpc("admin_reset_password", { p_member: a.member_id, p_password: pw }); if (error) return toast(error.message); }
-    const { data } = await sb.rpc("hub_accounts"); S.accounts = data || S.accounts; render();
+    const { data } = await sb.rpc("hub_accounts"); S.accounts = data || S.accounts;
+    const done = S.resets.filter(r => r.person === p.key); if (done.length) { await sb.from("hub_reset_requests").update({ resolved_at: new Date().toISOString(), resolved_by: S.me }).in("id", done.map(r => r.id)); S.resets = S.resets.filter(r => r.person !== p.key); }
+    render();
     const msg = `Hi ${p.short},\n\nYou now have access to the CEIBS Africa Programme Hub.\n\nOpen: ${location.origin}\nEmail: ${p.email}\nTemporary password: ${pw}\n\nYou'll choose your own password the first time you sign in. On your phone, open the link and use "Add to Home Screen".\n\nAnna`;
     const b = $("#adminmsg"); b.hidden = false; b.innerHTML = `<b>${esc(p.short)}: ${d.createacc ? "account created" : "password reset"}.</b> Send this to them:<textarea class="letter" id="invmsg" readonly style="min-height:180px;background:#fff">${esc(msg)}</textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-copyid="invmsg">${ic("copy")} Copy</button><a class="btn" href="mailto:${esc(p.email)}?subject=${encodeURIComponent("Your Programme Hub access")}&body=${encodeURIComponent(msg)}">${ic("mail")} Email</a></div>`;
     return;
