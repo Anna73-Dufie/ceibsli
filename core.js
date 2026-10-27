@@ -183,7 +183,7 @@ function vSignIn(err = "") {
     <div class="field"><label for="em">Email</label><input class="input" id="em" type="email" autocomplete="email" placeholder="name@ceibs.edu"></div>
     <div class="field"><label for="pw">Password</label><input class="input" id="pw" type="password" autocomplete="current-password"></div>
     <div class="err" id="lerr">${esc(err)}</div><button class="btn red block" id="lbtn" type="submit">Sign in</button>
-    <p class="fine"><button type="button" class="more" id="forgot" style="font-size:13px">Forgot your password?</button></p><p class="fine" style="margin-top:6px">No account yet? Ask Anna.</p></form></section></div>`;
+    <p class="fine"><button type="button" class="more" id="forgot" style="font-size:13px">Forgot your password?</button></p><p class="fine" style="margin-top:6px">New here? <button type="button" class="more" id="signup" style="font-size:13px">Create an account</button></p></form></section></div>`;
   $("#login").onsubmit = async e => {
     e.preventDefault(); const b = $("#lbtn"); b.disabled = true; b.textContent = "Signing in…";
     const { error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value });
@@ -191,6 +191,40 @@ function vSignIn(err = "") {
     boot();
   };
   $("#forgot").onclick = () => vForgot($("#em").value.trim());
+  $("#signup").onclick = () => vSignUp($("#em").value.trim());
+}
+function vSignUp(email = "", sent = false) {
+  $("#app").innerHTML = `<div class="signin">${signinArt("Join the Programme Hub.", "Set up your account with your CEIBS email and choose your own password.")}
+   <section class="signin-form"><form id="signupf" novalidate><div class="brandline"><span class="emblem sm"><img src="emblem-white.png" alt=""></span><div><b>CEIBS Africa</b><span>Programme Hub</span></div></div>
+    ${sent ? `<h2>Confirm your email</h2><p class="lead">We've sent a link to <b>${esc(email)}</b>. Open it to finish setting up, then sign in. It can take a few minutes; check your junk folder too.</p><button class="btn block" type="button" id="back">Back to sign in</button>`
+    : `<h2>Create an account</h2><p class="lead">Use the CEIBS email you're listed under on the team.</p>
+    <div class="field"><label for="se">Email</label><input class="input" id="se" type="email" autocomplete="email" value="${esc(email)}" placeholder="name@ceibs.edu"></div>
+    <div class="field"><label for="s1">Password</label><input class="input" id="s1" type="password" autocomplete="new-password" placeholder="At least 10 characters"></div>
+    <div class="field"><label for="s2">Repeat password</label><input class="input" id="s2" type="password" autocomplete="new-password"></div>
+    <div class="err" id="serr"></div><button class="btn red block" type="submit" id="sbtn">Create account</button>
+    <p class="fine">Already have one? <button type="button" class="more" id="back" style="font-size:13px">Sign in</button></p>`}</form></section></div>`;
+  $("#back").onclick = () => vSignIn();
+  if (sent) return;
+  $("#signupf").onsubmit = async e => {
+    e.preventDefault(); const em = $("#se").value.trim().toLowerCase(), a = $("#s1").value, b = $("#s2").value, err = m => { $("#serr").textContent = m; };
+    if (!/^\S+@\S+\.\S+$/.test(em)) return err("Enter your email address.");
+    if (a.length < 10) return err("Use at least 10 characters for your password.");
+    if (a !== b) return err("The two passwords don't match.");
+    const btn = $("#sbtn"); btn.disabled = true; btn.textContent = "Creating…";
+    const { data, error } = await sb.auth.signUp({ email: em, password: a, options: { emailRedirectTo: location.origin + "/" } });
+    btn.disabled = false; btn.textContent = "Create account";
+    if (error) {
+      const m = (error.message || "") + (error.code || "");
+      if (/database error|not_on_team|unexpected_failure/i.test(m)) return err("This email isn't on the team list yet. Ask Anna to add you, then try again.");
+      if (/already|registered|exists/i.test(m)) return err("This email already has an account. Sign in, or use “Forgot your password?”.");
+      if (/rate|seconds|too many/i.test(m)) return err("Too many attempts. Please wait a few minutes and try again.");
+      if (/weak|short|characters/i.test(m)) return err("Choose a longer password, with letters and numbers.");
+      return err(error.message);
+    }
+    if (data.user && Array.isArray(data.user.identities) && !data.user.identities.length) return err("This email already has an account. Sign in, or use “Forgot your password?”.");
+    if (data.session) return boot();
+    vSignUp(em, true);
+  };
 }
 function vForgot(email = "", sent = false) {
   $("#app").innerHTML = `<div class="signin">${signinArt("Forgotten your password?", "It happens. We'll get you back in.")}
