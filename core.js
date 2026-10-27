@@ -183,7 +183,7 @@ function vSignIn(err = "") {
     <div class="field"><label for="em">Email</label><input class="input" id="em" type="email" autocomplete="email" placeholder="name@ceibs.edu"></div>
     <div class="field"><label for="pw">Password</label><input class="input" id="pw" type="password" autocomplete="current-password"></div>
     <div class="err" id="lerr">${esc(err)}</div><button class="btn red block" id="lbtn" type="submit">Sign in</button>
-    <p class="fine"><button type="button" class="more" id="forgot" style="font-size:13px">Forgot your password?</button></p><p class="fine" style="margin-top:6px">No account yet? Ask Anna or Prof. Gordon.</p></form></section></div>`;
+    <p class="fine"><button type="button" class="more" id="forgot" style="font-size:13px">Forgot your password?</button></p><p class="fine" style="margin-top:6px">No account yet? Ask Anna.</p></form></section></div>`;
   $("#login").onsubmit = async e => {
     e.preventDefault(); const b = $("#lbtn"); b.disabled = true; b.textContent = "Signing in…";
     const { error } = await sb.auth.signInWithPassword({ email: $("#em").value.trim(), password: $("#pw").value });
@@ -196,7 +196,7 @@ function vForgot(email = "", sent = false) {
   $("#app").innerHTML = `<div class="signin">${signinArt("Forgotten your password?", "It happens. We'll get you back in.")}
    <section class="signin-form"><form id="forgotf" novalidate><div class="brandline"><span class="emblem sm"><img src="emblem-white.png" alt=""></span><div><b>CEIBS Africa</b><span>Programme Hub</span></div></div>
     ${sent ? `<h2>Check your email</h2><p class="lead">If <b>${esc(email)}</b> is on the team, a link to choose a new password is on its way. It can take a few minutes; check your junk folder too.</p>
-    <div class="callout blue">Anna and Prof. Gordon have also been told, so they can reset it for you if the email doesn't arrive.</div><button class="btn block" type="button" id="back">Back to sign in</button>`
+    <div class="callout blue">Anna has also been told, so she can reset it for you if the email doesn't arrive.</div><button class="btn block" type="button" id="back">Back to sign in</button>`
     : `<h2>Reset your password</h2><p class="lead">Enter your CEIBS email and we'll send you a link to choose a new password.</p>
     <div class="field"><label for="fe">Email</label><input class="input" id="fe" type="email" autocomplete="email" value="${esc(email)}" placeholder="name@ceibs.edu"></div>
     <div class="err" id="ferr"></div><button class="btn red block" type="submit" id="fbtn">Send reset link</button><p class="fine"><button type="button" class="more" id="back" style="font-size:13px">Back to sign in</button></p>`}</form></section></div>`;
@@ -243,7 +243,7 @@ async function boot() {
   if (m.must_reset || S.recovery) return vSetPassword();
   const h = (location.hash || "").slice(1); if (NAV().some(n => n[0] === h) || h === "account") S.view = h;
   if (!S.month) { const n = nextSession()[0]; S.month = n ? Number(n.start_date.slice(5, 7)) : 1; if (TODAY.slice(0, 4) === "2027") S.month = Number(TODAY.slice(5, 7)); }
-  if (isAdmin()) { const [{ data }, rr] = await Promise.all([sb.rpc("hub_accounts"), sb.from("hub_reset_requests").select("*").is("resolved_at", null).order("created_at", { ascending: false })]); S.accounts = data || []; S.resets = rr.data || []; }
+  if (isAdmin()) { const [{ data }, rr] = await Promise.all([sb.rpc("hub_accounts"), S.me !== "anna" ? Promise.resolve({ data: [] }) : sb.from("hub_reset_requests").select("*").is("resolved_at", null).order("created_at", { ascending: false })]); S.accounts = data || []; S.resets = rr.data || []; }
   render(); subscribe();
 }
 sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") { S.me = null; vSignIn(); } if (ev === "PASSWORD_RECOVERY") { S.recovery = true; if (S.me) vSetPassword(); } });
