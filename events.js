@@ -26,7 +26,7 @@ function parseImport(txt) {
 document.addEventListener("click", async e => {
   if (S.search && !e.target.closest(".search")) { S.search = ""; if (!e.target.closest("[data-session],[data-teamof]")) { render(); return; } }
   if (S.menu && !e.target.closest(".me")) { S.menu = false; render(); }
-  if (e.target.closest("#signout,#signout2")) { await sb.auth.signOut(); return; }
+  if (e.target.closest("#signout,#signout2,#signout3")) return signOut();
   const t = e.target.closest("[data-nav],[data-menu],[data-view],[data-session],[data-teamof],[data-close],[data-viewsheet],[data-edit],[data-new],[data-delsession],[data-month],[data-fam],[data-calview],[data-pgm],[data-mod],[data-worktab],[data-addnote],[data-teamwin],[data-wf],[data-editstep],[data-savestep],[data-brief],[data-tpl],[data-copyid],[data-import],[data-doimport],[data-addstu],[data-ptab],[data-createacc],[data-resetacc],[data-pform],[data-suggest],[data-rmperson],[data-resolve]");
   if (!t) return; const d = t.dataset;
   if (d.nav !== undefined) { S.nav = d.nav === "1" ? !S.nav : false; render(); return; }

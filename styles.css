@@ -58,7 +58,11 @@ input,select,textarea{font:inherit;color:inherit}
 .side nav svg{width:19px;height:19px;flex:none}
 .side nav .n{margin-left:auto;background:rgba(255,255,255,.16);color:#fff;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 8px}
 .side nav button[aria-current] .n{background:rgba(255,255,255,.25)}
-.side .foot{margin-top:auto;padding:16px 8px 0;font-size:11.5px;color:#8FA0BC;letter-spacing:.04em}
+.side .foot{margin-top:auto;padding:12px 0 0;font-size:11.5px;color:#8FA0BC;letter-spacing:.04em;border-top:1px solid rgba(255,255,255,.08)}
+.side .foot span{display:block;padding:10px 8px 0}
+.side .signout{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:10px;color:var(--side-text);font-weight:500;font-size:14.5px;letter-spacing:0;text-align:left}
+.side .signout:hover{background:var(--navy-2);color:#fff}
+.side .signout svg{width:19px;height:19px;flex:none}
 .main{min-width:0;display:flex;flex-direction:column}
 .top{display:flex;align-items:center;gap:14px;padding:16px 32px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:15}
 .top .menu{display:none;width:38px;height:38px;border:1px solid var(--line);border-radius:10px;place-items:center}

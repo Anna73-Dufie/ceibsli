@@ -126,6 +126,7 @@ const ICON = {
   brief: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 9h18c0-1-3-2-3-9M10 21h4"/>',
   people: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   admin: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
+  signout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   check: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
   cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
@@ -149,7 +150,7 @@ function shell(inner) {
   const me = P(S.me), late = myTasks().filter(isLate).length, dueWeek = myTasks().filter(t => isOpen(t) && t.due >= TODAY && diff(t.due, TODAY) <= 7).length;
   return `<div class="app"><aside class="side ${S.nav ? "open" : ""}"><div class="brand"><span class="emblem"><img src="emblem-white.png" alt=""></span><div><b>CEIBS</b><span>Africa Programme Hub</span></div></div>
    <nav aria-label="Sections">${NAV().map(([k, l]) => `<button data-view="${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ic(k)}${l}${k === "work" && (late || dueWeek) ? `<span class="n">${late || dueWeek}</span>` : ""}${k === "admin" && S.resets.length ? `<span class="n" style="background:var(--red)">${S.resets.length}</span>` : ""}</button>`).join("")}</nav>
-   <div class="foot">2027 · Programme Office</div></aside>
+   <div class="foot"><button class="signout" id="signout3">${ic("signout")}Sign out</button><span>2027 · Programme Office</span></div></aside>
    <div class="main"><header class="top"><button class="menu" data-nav="1" aria-label="Menu">☰</button>
     <div class="search">${ic("search")}<label class="sr" for="gs">Search</label><input id="gs" placeholder="Search programmes, tasks, people…" value="${esc(S.search)}" autocomplete="off">${S.search.length > 1 ? searchResults() : ""}</div>
     <span class="sp"></span><span class="yearpill">2027</span>
@@ -176,10 +177,16 @@ function go(v) { S.view = v; S.nav = false; S.menu = false; S.search = ""; if (v
 
 /* ---------- sign in ---------- */
 function signinArt(h, p) { return `<section class="signin-art"><img class="logo" src="logo-white.png" alt="CEIBS"><div><h1>${h}</h1><p>${p}</p></div><small>CEIBS Africa · Programme Office · 2027</small></section>`; }
-function vSignIn(err = "") {
+async function signOut() {
+  try { await sb.auth.signOut({ scope: "local" }); } catch (_) { }
+  S.me = null; S.menu = false; S.nav = false; S.view = "overview"; S.search = "";
+  try { history.replaceState(null, "", location.pathname); } catch (_) { }
+  window.scrollTo(0, 0); vSignIn("", "You've signed out.");
+}
+function vSignIn(err = "", note = "") {
   $("#app").innerHTML = `<div class="signin">${signinArt("Every programme ready, on time.", "The 2027 programme plan, each person's work, and the team's progress in one place.")}
    <section class="signin-form"><form id="login" novalidate><div class="brandline"><span class="emblem sm"><img src="emblem-white.png" alt=""></span><div><b>CEIBS Africa</b><span>Programme Hub</span></div></div>
-    <h2>Sign in</h2><p class="lead">Use your CEIBS email address.</p>
+    <h2>Sign in</h2><p class="lead">Use your CEIBS email address.</p>${note ? `<div class="callout blue" style="margin-bottom:14px">${esc(note)}</div>` : ""}
     <div class="field"><label for="em">Email</label><input class="input" id="em" type="email" autocomplete="email" placeholder="name@ceibs.edu"></div>
     <div class="field"><label for="pw">Password</label><input class="input" id="pw" type="password" autocomplete="current-password"></div>
     <div class="err" id="lerr">${esc(err)}</div><button class="btn red block" id="lbtn" type="submit">Sign in</button>
@@ -280,4 +287,4 @@ async function boot() {
   if (isAdmin()) { const [{ data }, rr] = await Promise.all([sb.rpc("hub_accounts"), S.me !== "anna" ? Promise.resolve({ data: [] }) : sb.from("hub_reset_requests").select("*").is("resolved_at", null).order("created_at", { ascending: false })]); S.accounts = data || []; S.resets = rr.data || []; }
   render(); subscribe();
 }
-sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT") { S.me = null; vSignIn(); } if (ev === "PASSWORD_RECOVERY") { S.recovery = true; if (S.me) vSetPassword(); } });
+sb.auth.onAuthStateChange(ev => { if (ev === "SIGNED_OUT" && S.me) { S.me = null; vSignIn(); } if (ev === "PASSWORD_RECOVERY") { S.recovery = true; if (S.me) vSetPassword(); } });
