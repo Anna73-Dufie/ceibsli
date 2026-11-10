@@ -140,7 +140,7 @@ const ic = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 
 /* ---------- frame ---------- */
 function NAV() {
-  const L = [["overview", "Overview"], ["calendar", "2027 Calendar"], ["programmes", "Programmes"], ["work", "My Work"], ["team", "Team Progress"], ["workflows", "Workflows"], ["templates", "Templates"]];
+  const L = [["overview", "Home"], ["calendar", "2027 Calendar"], ["programmes", "Programmes"], ["work", "My Work"], ["team", "Team Progress"], ["workflows", "Workflows"], ["templates", "Templates"]];
   if (canFees()) L.push(["fees", "Students & fees"]);
   L.push(["brief", "Weekly brief"], ["people", "People"]);
   if (isAdmin()) L.push(["admin", "Admin"]);

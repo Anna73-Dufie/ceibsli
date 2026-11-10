@@ -17,31 +17,6 @@ function readyBlock(L, s) {
 }
 const famPill = f => `<span class="tag" style="--c:${famC(f)}"><span class="dot" style="--c:${famC(f)}"></span>${esc(FAM_LABEL[f] || f)}</span>`;
 
-/* ---------- Overview ---------- */
-function vOverview() {
-  const me = P(S.me), h = new Date().getHours(), greet = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-  const mine = myTasks().filter(isOpen), week = mine.filter(t => diff(t.due, TODAY) <= 7), late = mine.filter(t => t.due < TODAY);
-  const upcoming = nextSession(), soon = upcoming.filter(s => diff(s.start_date, TODAY) <= 122);
-  const attnPool = isSup() ? S.tasks.filter(t => isLate(t) || (t.status === "waiting" && isOpen(t))) : mine.filter(t => t.due < TODAY || t.status === "waiting");
-  const approvals = S.tasks.filter(t => t.approver === S.me && isOpen(t) && ["progress", "waiting"].includes(t.status));
-  const attn = [...new Set([...attnPool.sort((a, b) => a.due.localeCompare(b.due)), ...approvals, ...mine.slice(0, 4)])].slice(0, 4);
-  const sub = late.length ? `You have ${plural(late.length, "overdue task")} and ${week.length - late.length} more due this week.` : week.length ? `You have ${plural(week.length, "task")} due this week.` : mine.length ? `Your next task is due ${fmtL(mine[0].due)}.` : "Nothing is waiting for you.";
-  return `<div class="head"><div><h1>2027 programme overview</h1><p>${greet}, ${esc(me.short)}. ${sub}</p></div></div>
-  <div class="tiles"><div class="tile red"><span class="ic">${ic("cal")}</span><div><b>${soon.length}</b><span>sessions in the next four months</span></div></div>
-   <div class="tile green"><span class="ic">${ic("check")}</span><div><b>${week.length}</b><span>of your tasks due this week</span></div></div>
-   <div class="tile amber"><span class="ic">${ic("warn")}</span><div><b>${attnPool.length + approvals.length}</b><span>${isSup() ? "items need attention" : "need your attention"}</span></div></div></div>
-  <div class="grid g-main" style="margin-bottom:18px">
-   <section class="card"><div class="ch-row"><h2 class="ch">Programme readiness</h2><button class="more" data-view="programmes">View all programmes ${ic("arrow").replace("<svg", '<svg width="16" height="16"')}</button></div>
-    <div class="rows">${upcoming.slice(0, 4).map(s => { const L = tasksOf(s.id), p = readiness(L), st = statusOf(L, s); return `<button class="prow" data-session="${s.id}" style="--c:${famC(s.family)}"><span class="bar"></span><div><h4>${esc(s.programme)} · ${esc(s.short || s.title)}</h4><div class="meta"><span>${esc(range(s))}</span><span class="prog ${progTone(p, L)}"><i style="width:${p}%"></i></span><span class="pct">${p}%</span><span class="pill ${st[0]}">${esc(st[1])}</span></div></div>${stack(L.map(t => t.owner))}</button>`; }).join("") || '<p class="empty">No upcoming sessions.</p>'}</div></section>
-   <section class="card"><div class="ch-row"><h2 class="ch">Needs your attention</h2><button class="more" data-view="work">View all ${ic("arrow").replace("<svg", '<svg width="16" height="16"')}</button></div>
-    <div class="rows">${attn.map(t => { const s = SID[t.session_id] || {}; return `<button class="arow" data-session="${s.id}" style="--c:${isLate(t) ? "var(--red)" : t.status === "waiting" ? "#E59A1A" : "#5B8FD6"}"><span class="bar"></span><div><h4>${esc(t.title)}</h4><div class="meta"><span>${esc(s.programme || "")} · ${esc(s.short || s.title || "")}</span><span style="${isLate(t) ? "color:var(--red)" : ""}">Due ${fmtY(t.due)}</span></div></div>${who(t.owner)}<span class="chev">${ic("chev")}</span></button>`; }).join("") || '<p class="empty">Nothing needs you right now.</p>'}</div></section></div>
-  <div class="grid g-main">
-   <section class="card"><div class="ch-row"><h2 class="ch">This month across the team</h2><button class="more" data-view="team">View team progress ${ic("arrow").replace("<svg", '<svg width="16" height="16"')}</button></div>
-    <div class="rows">${S.people.map(p => { const L = S.tasks.filter(t => t.owner === p.key && t.due <= addDays(TODAY, 45) && (isOpen(t) || t.due >= addDays(TODAY, -30))); const d = L.filter(t => !isOpen(t)).length, pct = L.length ? Math.round(d / L.length * 100) : 0; const nxt = myTasks(p.key).filter(isOpen)[0];
-      return `<div class="trow">${av(p.key)}<div><div class="nm">${esc(p.short)}</div><div class="ti">${esc(p.title.split(",")[0])}</div></div>${L.length ? `<div class="prog ${progTone(pct, L)}"><i style="width:${pct}%"></i></div><span class="muted">${d} of ${L.length} complete</span>` : `<span class="muted" style="grid-column:span 2">${nxt ? `Next: ${esc(nxt.title)} · ${fmt(nxt.due)}` : "Nothing scheduled"}</span>`}</div>`; }).join("")}</div></section>
-   <section class="card" style="display:flex;gap:16px;align-items:flex-start"><span class="emblem" style="background:var(--blue-soft)"><span style="color:var(--blue);display:grid">${ic("doc").replace("<svg", '<svg width="22" height="22"')}</span></span><div><h2 class="ch">Weekly brief</h2><p class="muted" style="margin:6px 0 16px">Every Monday at 6am the Hub writes each person's list: what is overdue, what is due this week and what is coming next.</p><button class="btn red" data-view="brief">Review brief ${ic("arrow")}</button></div></section></div>`;
-}
-
 /* ---------- 2027 Calendar ---------- */
 function calItems(m) {
   const mm = `2027-${String(m).padStart(2, "0")}`, first = mm + "-01", last = mm + "-31";
