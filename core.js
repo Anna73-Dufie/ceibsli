@@ -36,7 +36,7 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const S = {
   recovery: RECOVERY_LINK, resets: [], member: null, me: null, people: [], sessions: [], tasks: [], steps: [], workflows: [], students: [], vendors: [], faculty: [], accounts: [],
   view: "overview", month: null, fam: "all", calView: "list", pgm: null, mod: null, wf: "classroom", tpl: null, tplSel: {}, team: "30",
-  workTab: "week", briefFor: null, ptab: "team", q: "", search: "", nav: false, menu: false, drawer: null, drawerMode: "view", open: {}, stuProg: "all"
+  workTab: "week", viewAs: null, briefFor: null, ptab: "team", q: "", search: "", nav: false, menu: false, drawer: null, drawerMode: "view", open: {}, stuProg: "all"
 };
 let SID = {};
 const P = k => S.people.find(p => p.key === k) || { key: k, short: k || "?", name: k || "Unassigned", colour: "#64748B" };
@@ -169,9 +169,17 @@ function render() {
   const V = { overview: vOverview, calendar: vCalendar, programmes: vProgrammes, work: vWork, team: vTeam, workflows: vWorkflows, templates: vTemplates, fees: vFees, brief: vBrief, people: vPeople, admin: vAdmin, account: vAccount };
   if (!NAV().some(n => n[0] === S.view) && S.view !== "account") S.view = "overview";
   const a = document.activeElement, focusId = a && a.id, pos = a && a.selectionStart;
-  const y = window.scrollY; $("#app").innerHTML = shell((V[S.view] || vOverview)()); window.scrollTo(0, y);
+  const y = window.scrollY, real = S.me, as = isAdmin() && S.viewAs && S.viewAs !== real && ["overview", "work"].includes(S.view) && S.people.some(p => p.key === S.viewAs) ? S.viewAs : null;
+  let inner; if (as) { S.me = as; try { inner = (V[S.view] || vOverview)(); } finally { S.me = real; } } else inner = (V[S.view] || vOverview)();
+  if (isAdmin() && ["overview", "work"].includes(S.view)) inner = viewAsBar(as) + inner;
+  $("#app").innerHTML = shell(inner); window.scrollTo(0, y);
   if (focusId) { const n = document.getElementById(focusId); if (n && n.tagName === "INPUT") { n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) { } } }
   after();
+}
+function viewAsBar(as) {
+  const L = S.people.filter(p => p.key !== S.me), page = S.view === "work" ? "My Work" : "Home";
+  return `<div class="viewas ${as ? "on" : ""}"><span class="va-l">${as ? `Viewing <b>${esc(P(as).short)}'s ${page}</b> as they see it` : `See someone else's ${page}`}</span>
+   <div class="va-p">${as ? `<button class="va-me" data-viewas="">Back to mine</button>` : ""}${L.map(p => `<button class="va-b ${as === p.key ? "cur" : ""}" data-viewas="${p.key}" title="${esc(p.name)}" aria-pressed="${as === p.key}">${av(p.key, "sm")}<span>${esc(p.short)}</span></button>`).join("")}</div></div>`;
 }
 function go(v) { S.view = v; S.nav = false; S.menu = false; S.search = ""; if (v !== "programmes") { S.pgm = null; } try { history.replaceState(null, "", "#" + v); } catch (_) { } render(); window.scrollTo(0, 0); }
 

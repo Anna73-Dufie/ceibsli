@@ -402,3 +402,10 @@ tbody tr.mine td{background:#FFFCF5}
 .h-st-top b{white-space:nowrap;font-size:14.5px}
 .h-tl:empty:after,.h-tl:has(.empty):after{display:none}
 .h-tl:has(.empty){padding-right:0}
+.viewas{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px 8px 16px;margin-bottom:22px}
+.viewas.on{background:var(--blue-soft);border-color:#C7DBF3}
+.va-l{font-size:13.5px;color:var(--mute)}.viewas.on .va-l{color:var(--blue)}
+.va-p{display:flex;gap:6px;flex-wrap:wrap}
+.va-b{display:flex;align-items:center;gap:7px;padding:4px 11px 4px 5px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--ink-2)}
+.va-b:hover{border-color:#B9C7DB}.va-b.cur{background:var(--navy);border-color:var(--navy);color:#fff}
+.va-me{padding:5px 13px;border-radius:999px;background:var(--red);color:#fff;font-size:13px;font-weight:700}

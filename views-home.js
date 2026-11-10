@@ -150,3 +150,10 @@ document.addEventListener("click", e => {
   const nx = t.status === "todo" ? "progress" : "done";
   setTask(t.id, { status: nx }, nx === "done" ? "Done. The team can see it." : "Started. It shows as in progress.");
 });
+
+/* admins: switch whose Home / My Work you are looking at */
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-viewas]"); if (!b || !isAdmin()) return;
+  S.viewAs = b.dataset.viewas || null; S.workTab = "week";
+  if (b.dataset.goto) go(b.dataset.goto); else { render(); window.scrollTo(0, 0); }
+});
