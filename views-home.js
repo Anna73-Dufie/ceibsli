@@ -137,7 +137,7 @@ function vOverview() {
   const mon = addDays(ws, 7); R.push([fmtW(mon).split(" ")[0] + " 6am", "Your weekly brief arrives", "Info", "brief"]);
   const remC = `<section class="card h-rem"><div class="ch-row"><h2 class="ch">Reminders</h2></div>${R.slice(0, 3).map(([w, tx, pr, v]) => `<button class="h-ri" data-view="${v}"><span><b>${esc(w)}</b><small>${esc(tx)}</small></span><span class="h-pr ${pr.toLowerCase()}">${pr}<i></i></span></button>`).join("")}</section>`;
 
-  return `<div class="head"><div><h1>${greet}, ${esc(me.short)}</h1><p>${fmtL(TODAY)} · ${sub}</p></div>${appr.length ? `<button class="btn" data-view="work">${plural(appr.length, "approval")} waiting ${ic("arrow")}</button>` : ""}</div>
+  return `<div class="head"><div><h1>${greet}, ${esc(me.short)}</h1><p>${fmtL(TODAY)} · ${sub}</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${["daniel", "anna"].includes(S.me) && canPlan() ? `<button class="btn" data-view="calupdate">Calendar changed? Update it</button>` : ""}${appr.length ? `<button class="btn" data-view="work">${plural(appr.length, "approval")} waiting ${ic("arrow")}</button>` : ""}</div></div>
    <div class="h-row1">${focus}${todayC}${sessC}${actC}</div>
    ${numsC}
    <div class="h-row3">${roleCard()}${schedC}<div class="h-side">${donutC}${remC}</div></div>`;

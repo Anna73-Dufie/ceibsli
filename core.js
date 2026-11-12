@@ -44,7 +44,7 @@ const isSup = () => S.me && ["admin", "supervisor"].includes(P(S.me).access);
 const isAdmin = () => S.me && P(S.me).access === "admin";
 const canPlan = () => isSup() || S.me === "daniel";
 const canFees = () => !!(S.me && P(S.me).fees);
-const canEditTask = t => t.owner === S.me || t.approver === S.me || canPlan();
+const canEditTask = t => t.owner === S.me || t.co_owner === S.me || t.approver === S.me || canPlan();
 const initials = n => (String(n || "?").replace(/^(Prof\.?|Dr\.?)\s+/i, "").trim()[0] || "?").toUpperCase();
 function av(key, size = "") { const p = P(key); return `<span class="av ${size}" style="--c:${p.colour}" title="${esc(p.name)}">${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="">` : esc(initials(p.name))}</span>`; }
 const who = (key, size = "sm") => `<span class="who">${av(key, size)}${esc(P(key).short)}</span>`;
@@ -76,7 +76,8 @@ function programmes() {
   }).sort((a, b) => (a.start || "9999").localeCompare(b.start || "9999"));
 }
 const nextSession = () => sess().filter(s => s.start_date && (s.end_date || s.start_date) >= TODAY).sort((a, b) => a.start_date.localeCompare(b.start_date));
-const myTasks = (k = S.me) => S.tasks.filter(t => t.owner === k);
+const myTasks = (k = S.me) => S.tasks.filter(t => t.owner === k || t.co_owner === k);
+const whoBoth = (o, co, sz = "xs") => who(o, sz) + (co ? `<div class="muted" style="font-size:12px;margin-top:2px">with ${esc(P(co).short)}</div>` : "");
 
 /* ---------- data ---------- */
 async function loadAll() {
@@ -166,8 +167,8 @@ function searchResults() {
 }
 function render() {
   if (!S.me) return;
-  const V = { overview: vOverview, calendar: vCalendar, programmes: vProgrammes, work: vWork, team: vTeam, workflows: vWorkflows, templates: vTemplates, fees: vFees, brief: vBrief, people: vPeople, admin: vAdmin, account: vAccount };
-  if (!NAV().some(n => n[0] === S.view) && S.view !== "account") S.view = "overview";
+  const V = { overview: vOverview, calendar: vCalendar, programmes: vProgrammes, work: vWork, team: vTeam, workflows: vWorkflows, templates: vTemplates, fees: vFees, brief: vBrief, people: vPeople, admin: vAdmin, account: vAccount, calupdate: vCalUpdate };
+  if (!NAV().some(n => n[0] === S.view) && S.view !== "account" && !(S.view === "calupdate" && canPlan())) S.view = "overview";
   const a = document.activeElement, focusId = a && a.id, pos = a && a.selectionStart;
   const y = window.scrollY, real = S.me, as = isAdmin() && S.viewAs && S.viewAs !== real && ["overview", "work"].includes(S.view) && S.people.some(p => p.key === S.viewAs) ? S.viewAs : null;
   let inner; if (as) { S.me = as; try { inner = (V[S.view] || vOverview)(); } finally { S.me = real; } } else inner = (V[S.view] || vOverview)();
@@ -313,7 +314,7 @@ async function boot() {
   const tok = await sb.rpc("my_calendar_token"); S.member.cal_token = tok.data || "";
   try { await loadAll(); } catch (e) { $("#app").innerHTML = `<div class="page"><p class="empty">The Hub could not load: ${esc(e.message)}. Refresh to try again.</p></div>`; return; }
   if (m.must_reset || S.recovery) return vSetPassword();
-  const h = (location.hash || "").slice(1); if (NAV().some(n => n[0] === h) || h === "account") S.view = h;
+  const h = (location.hash || "").slice(1); if (NAV().some(n => n[0] === h) || h === "account" || (h === "calupdate" && canPlan())) S.view = h;
   if (!S.month) { const n = nextSession()[0]; S.month = n ? Number(n.start_date.slice(5, 7)) : 1; if (TODAY.slice(0, 4) === "2027") S.month = Number(TODAY.slice(5, 7)); }
   if (isAdmin()) { const [{ data }, rr] = await Promise.all([sb.rpc("hub_accounts"), S.me !== "anna" ? Promise.resolve({ data: [] }) : sb.from("hub_reset_requests").select("*").is("resolved_at", null).order("created_at", { ascending: false })]); S.accounts = data || []; S.resets = rr.data || []; }
   render(); subscribe();

@@ -9,7 +9,7 @@ function stSelect(t) {
 }
 function wfTable(L) {
   if (!L.length) return '<p class="empty">No checklist for this entry.</p>';
-  return `<div class="tw"><table class="stack-sm"><thead><tr><th>Task</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${L.map(t => `<tr class="${t.owner === S.me ? "mine" : ""}"><td><b style="font-weight:600">${esc(t.title)}</b>${t.approver ? `<div class="muted" style="font-size:12.5px">Approved by ${esc(P(t.approver).short)}</div>` : ""}${t.note ? `<div class="muted" style="font-size:12.5px">“${esc(t.note)}”</div>` : ""}</td><td>${who(t.owner, "xs")}</td><td style="white-space:nowrap;${isLate(t) ? "color:var(--red);font-weight:600" : ""}">${fmt(t.due)}</td><td>${stSelect(t)}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="tw"><table class="stack-sm"><thead><tr><th>Task</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead><tbody>${L.map(t => `<tr class="${t.owner === S.me || t.co_owner === S.me ? "mine" : ""}"><td><b style="font-weight:600">${esc(t.title)}</b>${t.approver ? `<div class="muted" style="font-size:12.5px">Approved by ${esc(P(t.approver).short)}</div>` : ""}${t.note ? `<div class="muted" style="font-size:12.5px">“${esc(t.note)}”</div>` : ""}</td><td>${whoBoth(t.owner, t.co_owner)}</td><td style="white-space:nowrap;${isLate(t) ? "color:var(--red);font-weight:600" : ""}">${fmt(t.due)}</td><td>${stSelect(t)}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function readyBlock(L, s) {
   const p = readiness(L), st = statusOf(L, s), late = L.filter(isLate).length;
@@ -27,7 +27,7 @@ function calItems(m) {
 function vCalendar() {
   const fams = Object.keys(FAM_LABEL).filter(f => S.sessions.some(s => s.family === f));
   const items = calItems(S.month), real = items.filter(s => s.kind !== "holiday"), tbc = sess().filter(s => !s.start_date && (S.fam === "all" || s.family === S.fam));
-  return `<div class="head"><div><h1>2027 Calendar</h1><p>Every programme, month by month.</p></div>${canPlan() ? '<button class="btn red" data-new="1">Add a session</button>' : ""}</div>
+  return `<div class="head"><div><h1>2027 Calendar</h1><p>Every programme, month by month.</p></div>${canPlan() ? '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-view="calupdate">Update from calendar file</button><button class="btn red" data-new="1">Add a session</button></div>' : ""}</div>
   <div class="months" role="group" aria-label="Month">${MONTHS.map((n, i) => { const c = calItems(i + 1).filter(s => s.kind === "session").length; return `<button data-month="${i + 1}" aria-pressed="${S.month === i + 1}">${n.slice(0, 3)}<span>${c ? plural(c, "session") : "—"}</span></button>`; }).join("")}</div>
   <div class="toolbar"><div class="chips" role="group" aria-label="Programme"><button class="chip" data-fam="all" aria-pressed="${S.fam === "all"}">All programmes</button>${fams.map(f => `<button class="chip" data-fam="${esc(f)}" aria-pressed="${S.fam === f}"><span class="dot" style="--c:${famC(f)}"></span>${esc(FAM_LABEL[f])}</button>`).join("")}</div>
 </div>

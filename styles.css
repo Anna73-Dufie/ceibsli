@@ -448,3 +448,24 @@ tbody tr.mine td{background:#FFFCF5}
 .signin .callout{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);color:#fff}
 .signin-form form::after{content:"CEIBS Africa · Programme Office · Accra";display:block;text-align:center;font-size:12px;color:rgba(255,255,255,.7);margin-top:26px;letter-spacing:.02em}
 @media (max-width:520px){.signin{padding:20px 14px;background-position:30% center}.signin-form form{padding:32px 22px 24px;border-radius:22px}.signin-form h2{font-size:30px}}
+
+/* ---------- Calendar update ---------- */
+.cu-drop{padding:0;overflow:hidden}
+.cu-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:48px 24px;border:2px dashed #C9D6E8;border-radius:16px;margin:10px;cursor:pointer;background:var(--bg)}
+.cu-zone:hover{border-color:var(--blue);background:var(--blue-soft)}
+.cu-zone b{font-size:17px}.cu-zone .muted{max-width:56ch;font-size:13.5px}
+.cu-drop.busy .cu-zone{opacity:.7;pointer-events:none}
+.cu-ic{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--red);color:#fff;margin-bottom:6px}
+.cu-steps{margin:10px 0 0 18px;display:grid;gap:8px;color:var(--ink-2);font-size:14px}
+.cu-sum{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:18px}
+.cu-sum b{display:block}.cu-sum .muted{font-size:12.5px}
+.cu-pills{display:flex;gap:6px;flex-wrap:wrap}
+.cu-sec{margin-bottom:18px}
+.cu-row{display:grid;grid-template-columns:20px 4px minmax(0,1fr);gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line-2);cursor:pointer}
+.cu-row:last-child{border-bottom:0}
+.cu-row input{width:18px;height:18px;margin-top:2px;accent-color:var(--red)}
+.cu-bar{align-self:stretch;border-radius:2px;background:var(--c)}
+.cu-row h4{font-size:14.5px;font-weight:700;margin-bottom:4px}
+.cu-ch{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px}
+.cu-ch em{font-style:normal;color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin-right:4px}
+.cu-ch s{color:var(--mute)}.cu-ch b{color:var(--ink)}
