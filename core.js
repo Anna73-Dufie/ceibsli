@@ -184,6 +184,28 @@ function viewAsBar(as) {
 function go(v) { S.view = v; S.nav = false; S.menu = false; S.search = ""; if (v !== "programmes") { S.pgm = null; } try { history.replaceState(null, "", "#" + v); } catch (_) { } render(); window.scrollTo(0, 0); }
 
 /* ---------- sign in ---------- */
+/* glass sign-in: icons, show/hide password, remember me */
+const AUTH_I = { mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/>', eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>', eyeoff: '<path d="M3 3l18 18M10.6 6.1A9.9 9.9 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.1 3.8M6.6 7.6A16.6 16.6 0 0 0 2.5 12S6 18 12 18a9.4 9.4 0 0 0 4.4-1.1M9.9 10a3 3 0 0 0 4.1 4.1"/>' };
+const authSvg = d => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+function authEnhance() {
+  const root = document.querySelector(".signin"); if (!root || root.dataset.fx) return; root.dataset.fx = "1";
+  root.querySelectorAll(".field").forEach(f => {
+    const i = f.querySelector("input"), l = f.querySelector("label"); if (!i) return;
+    if (l && (!i.placeholder || i.type === "password")) i.placeholder = l.textContent.trim() + (i.id === "s1" ? " (10+ characters)" : "");
+    if (i.type === "email") { i.placeholder = "Email address"; f.insertAdjacentHTML("beforeend", `<span class="a-ic">${authSvg(AUTH_I.mail)}</span>`); }
+    if (i.type === "password") {
+      f.insertAdjacentHTML("beforeend", `<button type="button" class="a-ic a-eye" aria-label="Show password">${authSvg(AUTH_I.eyeoff)}</button>`);
+      const b = f.querySelector(".a-eye"); b.onclick = () => { const show = i.type === "password"; i.type = show ? "text" : "password"; b.innerHTML = authSvg(show ? AUTH_I.eye : AUTH_I.eyeoff); b.setAttribute("aria-label", show ? "Hide password" : "Show password"); i.focus(); };
+    }
+  });
+  const lg = root.querySelector("#login");
+  if (lg) {
+    let keep = true; try { keep = localStorage.getItem("hub_session_only") !== "1"; } catch (_) { }
+    root.querySelector("#lerr").insertAdjacentHTML("beforebegin", `<label class="a-rem"><input type="checkbox" id="rem" ${keep ? "checked" : ""}><span class="a-box"></span>Remember me</label>`);
+    lg.addEventListener("submit", () => { try { if ($("#rem").checked) localStorage.removeItem("hub_session_only"); else { localStorage.setItem("hub_session_only", "1"); sessionStorage.setItem("hub_tab", "1"); } } catch (_) { } }, true);
+  }
+}
+new MutationObserver(authEnhance).observe(document.getElementById("app") || document.body, { childList: true });
 function signinArt(h, p) { return `<section class="signin-art"><img class="logo" src="logo-white.png" alt="CEIBS"><div><h1>${h}</h1><p>${p}</p></div><small>CEIBS Africa · Programme Office · 2027</small></section>`; }
 async function signOut() {
   try { await sb.auth.signOut({ scope: "local" }); } catch (_) { }
@@ -194,7 +216,7 @@ async function signOut() {
 function vSignIn(err = "", note = "") {
   $("#app").innerHTML = `<div class="signin">${signinArt("Every programme ready, on time.", "The 2027 programme plan, each person's work, and the team's progress in one place.")}
    <section class="signin-form"><form id="login" novalidate><div class="brandline"><span class="emblem sm"><img src="emblem-white.png" alt=""></span><div><b>CEIBS Africa</b><span>Programme Hub</span></div></div>
-    <h2>Sign in</h2><p class="lead">Use your CEIBS email address.</p>${note ? `<div class="callout blue" style="margin-bottom:14px">${esc(note)}</div>` : ""}
+    <h2>Sign in</h2><p class="lead">Welcome back. Sign in to your account.</p>${note ? `<div class="callout blue" style="margin-bottom:14px">${esc(note)}</div>` : ""}
     <div class="field"><label for="em">Email</label><input class="input" id="em" type="email" autocomplete="email" placeholder="name@ceibs.edu"></div>
     <div class="field"><label for="pw">Password</label><input class="input" id="pw" type="password" autocomplete="current-password"></div>
     <div class="err" id="lerr">${esc(err)}</div><button class="btn red block" id="lbtn" type="submit">Sign in</button>
@@ -281,7 +303,8 @@ function vSetPassword() {
   };
 }
 async function boot() {
-  const { data: { session } } = await sb.auth.getSession();
+  let { data: { session } } = await sb.auth.getSession();
+  try { if (session && localStorage.getItem("hub_session_only") === "1" && !sessionStorage.getItem("hub_tab")) { await sb.auth.signOut({ scope: "local" }); session = null; localStorage.removeItem("hub_session_only"); } } catch (_) { }
   if (!session) return vSignIn(LINK_ERROR && /expired|invalid/i.test(LINK_ERROR) ? "That reset link has expired. Use 'Forgot your password?' to get a new one." : "");
   const { data: m } = await sb.from("members").select("id,email,full_name,role,is_admin,must_reset").eq("id", session.user.id).maybeSingle();
   const { data: key } = await sb.rpc("hub_me");
